@@ -1,8 +1,8 @@
 # caldavtester-tools
-Tools for using CalDAVTester
+Tools for using CalDAVTester (http://calendarserver.org/wiki/CalDAVTester)
 
 ## caldavtest.php
-Wrapper allowing to record and and aggregate results of CalDAVTester (http://calendarserver.org/wiki/CalDAVTester):
+Wrapper allowing to record and and aggregate results of CalDAVTester:
 * tests can be run and recorded through this wrapper
 * test-results can be aggregated by test script including a total percentage, success- and failure-count
 * recorded test-results can be displayed including failure-details without re-running the tests
