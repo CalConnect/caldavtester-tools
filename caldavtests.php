@@ -9,11 +9,16 @@
  */
 
 // configuration
-$caldavtester_dir = '/Users/ralf/CalDAVTester';	// __DIR__;
+$caldavtester_dir = realpath('../CalDAVTester');
 $caldavtester = 'PYTHONPATH=pycalendar/src '.$caldavtester_dir.'/testcaldav.py --print-details-onfail --observer jsondump';
 $serverinfo = $caldavtester_dir.'/serverinfo.xml';
 $testspath = 'scripts/tests/';	// must be stripped off when calling testcaldav.py
 $db_path = $caldavtester_dir.'/results.sqlite';
+
+if (!file_exists($caldavtester_dir) || !file_exists($caldavtester_dir.'/testcaldav.py'))
+{
+	usage(4, 'You need to configure $caldavtester_dir with the directory of your CalDAVTester directory!');
+}
 
 $db = setup_db($db_path);
 
