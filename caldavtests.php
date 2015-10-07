@@ -183,7 +183,7 @@ function run($branch, $revision, $what='default')
 		error_log($cmd);
 		if (($fp = popen($cmd, 'r')))
 		{
-			import_cli($branch, $revision, $fp);
+			import($branch, $revision, $fp);
 			fclose($fp);
 		}
 	}
