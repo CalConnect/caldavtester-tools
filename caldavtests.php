@@ -16,10 +16,10 @@ $serverinfo = $caldavtester_dir.'/serverinfo.xml';
 $testspath = 'scripts/tests/';	// must be stripped off when calling testcaldav.py
 $db_path = $caldavtester_dir.'/results.sqlite';
 
-// path to git sources to automatic get branch&revision, you can also hardcode something here
-$git_source = realpath('../egroupware');
-$branch = trim(exec("hash git && cd $git_source >/dev/null 2>&1 && git branch --no-color  2>/dev/null | sed -e '/^[^*]/d' -e \"s/* \(.*\)/\\1/\""));
-$revision = exec("hash git && cd $git_source >/dev/null 2>&1 && git rev-parse --short HEAD &2>/dev/null");
+// path to git sources to automatic get branch&revision, you can also hardcode default branch&revision here
+$git_sources = realpath('../egroupware');
+$branch = 'master';
+$revision = '';
 
 if (!file_exists($caldavtester_dir) || !file_exists($caldavtester_dir.'/testcaldav.py'))
 {
@@ -42,10 +42,34 @@ if (php_sapi_name() == 'cli')
 		'run::',		// run tests for given script, feature or (default) all
 		'delete:',	// delete tests results for given script, feature or all
 		'result-details::',	// list full results (optional of given script)
+		'git-sources::',	// path to git sources to automatic determine branch&revision
+		'serverinfo::',	// path to serverinfo.xml
 	));
 	if (isset($options['h']) || isset($options['help']))
 	{
 		usage();
+	}
+	if (isset($options['serverinfo']))
+	{
+		if (!file_exists($options['serverinfo']))
+		{
+			usage(5, "Specified serverinfo '$options[serverinfo]' not found!");
+		}
+		$serverinfo = realpath($options['serverinfo']);
+	}
+	if (isset($options['git-sources']))
+	{
+		if (!@file_exists(realpath($options['git-sources'].'/.git')))
+		{
+			usage(6, "Specified Git sources '$options[serverinfo]/.git' not found!");
+		}
+		$git_sources = realpath($options['git-sources']);
+	}
+	// only run git stuff, if sources exist, are git and git cli is available
+	if (@file_exists($git_sources.'/.git') && exec("hash git 2>/dev/null"))
+	{
+		$branch = trim(exec("cd $git_sources >/dev/null 2>&1 && git branch --no-color  2>/dev/null | sed -e '/^[^*]/d' -e \"s/* \(.*\)/\\1/\""));
+		$revision = exec("cd $git_sources >/dev/null 2>&1 && git rev-parse --short HEAD &2>/dev/null");
 	}
 	if (!isset($options['branch']))
 	{
@@ -110,7 +134,7 @@ exit;
  */
 function usage($exit_code=0, $error_msg='')
 {
-	global $branch, $revision;
+	global $branch, $revision, $serverinfo, $git_sources;
 
 	if ($error_msg)
 	{
@@ -132,6 +156,10 @@ function usage($exit_code=0, $error_msg='')
 	echo "  List scripts incl. required features for given script, feature, default (enabled and not ignore-all taged) or all\n";
 	echo "--features\n";
 	echo "  List features incl. if they are enabled in serverinfo\n";
+	echo "--serverinfo\n";
+	echo "  Path to serverinfo.xml to use, default '$serverinfo'\n";
+	echo "--git-sources\n";
+	echo "  Path to sources to use Git to automatic determine branch&revision, default '$git_sources'\n";
 	echo "--help|-h\n";
 	echo "  Display this help message\n";
 

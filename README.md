@@ -28,6 +28,10 @@ Usage: php caldavtests.php
   List scripts incl. required features for given script, feature, default (enabled and not ignore-all taged) or all
 --features
   List features incl. if they are enabled in serverinfo
+--serverinfo
+  Path to serverinfo.xml to use, default './serverinfo.xml'
+--git-sources
+  Path to sources to use Git to automatic determine branch&revision
 --help|-h
   Display this help message
   ```
