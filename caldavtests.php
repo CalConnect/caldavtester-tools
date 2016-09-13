@@ -66,7 +66,7 @@ if (php_sapi_name() == 'cli')
 		$git_sources = realpath($options['git-sources']);
 	}
 	// only run git stuff, if sources exist, are git and git cli is available
-	if (@file_exists($git_sources.'/.git') && exec("hash git 2>/dev/null"))
+	if (@file_exists($git_sources.'/.git') && !exec("hash git 2>/dev/null"))
 	{
 		$branch = trim(exec("cd $git_sources >/dev/null 2>&1 && git branch --no-color  2>/dev/null | sed -e '/^[^*]/d' -e \"s/* \(.*\)/\\1/\""));
 		$revision = exec("cd $git_sources >/dev/null 2>&1 && git rev-parse --short HEAD &2>/dev/null");
