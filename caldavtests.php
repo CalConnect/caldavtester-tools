@@ -472,7 +472,8 @@ function import($_branch, $_revision, $_file)
 			if (!$suite['tests']) echo "$script[name] ($script_id)\t$suite[name] ($suite_id)\t$suite[result]\n";
 			foreach($suite['tests'] as $test)
 			{
-				echo "$script[name] ($script_id)\t$suite[name] ($suite_id)\t$test[name]\t$test[result]\n$test[details]";
+				echo "$script[name] ($script_id)\t$suite[name] ($suite_id)\t$test[name]\t$test[result]\n";
+				if (!empty($test['details'])) echo "$test[details]\n";
 				if (!isset($select))
 				{
 					$select = $db->prepare('SELECT * FROM results WHERE branch=:branch AND script=:script AND suite=:suite AND test=:test');
@@ -520,7 +521,7 @@ function import($_branch, $_revision, $_file)
 			}
 		}
 	}
-	error_log("$new_failures new failures, $failed total failures, $succieded tests succieded ($updated tests updated, $inserted newly inserted)");
+	error_log("\n$new_failures new failures, $failed total failures, $succieded tests succieded ($updated tests updated, $inserted newly inserted)");
 }
 
 /**
