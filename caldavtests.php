@@ -5,7 +5,8 @@
  * @author Ralf Becker <rb@stylite.de>
  * @license http://opensource.org/licenses/Apache-2.0 Apache License, Version 2.0
  *
- * @link http://calendarserver.org/wiki/CalDAVTester
+ * @link https://www.calendarserver.org/CalDAVTester.html
+ * @link https://github.com/CalConnect/caldavtester-tools
  */
 
 // configuration
@@ -14,6 +15,11 @@ $caldavtester = 'PYTHONPATH=pycalendar/src '.$caldavtester_dir.'/testcaldav.py -
 $serverinfo = $caldavtester_dir.'/serverinfo.xml';
 $testspath = 'scripts/tests/';	// must be stripped off when calling testcaldav.py
 $db_path = $caldavtester_dir.'/results.sqlite';
+
+// path to git sources to automatic get branch&revision, you can also hardcode something here
+$git_source = realpath('../egroupware');
+$branch = trim(exec("hash git && cd $git_source >/dev/null 2>&1 && git branch --no-color  2>/dev/null | sed -e '/^[^*]/d' -e \"s/* \(.*\)/\\1/\""));
+$revision = exec("hash git && cd $git_source >/dev/null 2>&1 && git rev-parse --short HEAD &2>/dev/null");
 
 if (!file_exists($caldavtester_dir) || !file_exists($caldavtester_dir.'/testcaldav.py'))
 {
@@ -43,7 +49,11 @@ if (php_sapi_name() == 'cli')
 	}
 	if (!isset($options['branch']))
 	{
-		$options['branch'] = 'trunk';
+		$options['branch'] = $branch;
+	}
+	if (!isset($options['revision']))
+	{
+		$options['revision'] = $revision;
 	}
 	if (isset($options['import']))
 	{
@@ -100,21 +110,23 @@ exit;
  */
 function usage($exit_code=0, $error_msg='')
 {
+	global $branch, $revision;
+
 	if ($error_msg)
 	{
 		echo "\n\n$error_msg\n\n";
 	}
 	$cmd = basename($_SERVER['argv'][0]);
 	echo "Usage: php $cmd\n";
-	echo "--results [--branch=<branch> (default 'trunk')]\n";
+	echo "--results [--branch=<branch> (default '$branch')]\n";
 	echo "  Aggregate results by script incl. number of tests success/failure/percentage\n";
-	echo "--run[=(<script-name>|<feature>|default(default)|all)] [--branch=<branch> (default 'trunk')] --revision <revision>\n";
+	echo "--run[=(<script-name>|<feature>|default(default)|all)] [--branch=<branch> (default '$branch')] [--revision <revision> (default '$revision')]\n";
 	echo "  Run tests of given script, all scripts requiring given feature, default (enabled and not ignore-all taged) or all\n";
 	echo "--result-details[=(<script-name>|<feature>|default|all(default)] [--branch=<branch> (default 'trunk')]\n";
 	echo "  List result details incl. test success/failure/logs\n";
-	echo "--delete=(<script>|<feature>|all) [--branch=(<branch>|all) (default 'trunk')]\n";
+	echo "--delete=(<script>|<feature>|all) [--branch=(<branch>|all) (default '$branch')]\n";
 	echo "  Delete test results of given script, all scripts requiring given feature or all\n";
-	echo "--import=<json-to-import>  --revision=<revision> [--branch=<branch> (default 'trunk')]\n";
+	echo "--import=<json-to-import>  [--revision=<revision> (default '$revision')] [--branch=<branch> (default '$branch')]\n";
 	echo "  Import a log as jsondump created with testcaldav.py --print-details-onfail --observer jsondump\n";
 	echo "--scripts[=<script-name>|<feature>|default|all (default)]\n";
 	echo "  List scripts incl. required features for given script, feature, default (enabled and not ignore-all taged) or all\n";
@@ -290,7 +302,7 @@ ORDER BY script,suite,test');
 		{
 			if (!$html)
 			{
-				echo "$result[script_label]\t$result[suite_label]\t$result[test]\t$result[success]\t$result[failed]\t$result[first_failed]\n$result[details]";
+				echo "\n$result[script_label]\t$result[suite_label]\t$result[test]\t$result[success]\t$result[failed]\t$result[first_failed]\n$result[details]\n";
 				continue;
 			}
 		}
@@ -645,4 +657,12 @@ function setup_db($_db_path)
 	//error_log('schema_version='.$db->query('SELECT label FROM labels WHERE id=1')->fetchColumn());
 
 	return $db;
+}
+
+/**
+ * Check if we have a $git_source path set and can get a revision and path from there
+ */
+function default_revision()
+{
+
 }

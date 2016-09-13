@@ -1,5 +1,5 @@
 # caldavtester-tools
-Tools for using CalDAVTester (http://calendarserver.org/wiki/CalDAVTester)
+Tools for using CalDAVTester (https://www.calendarserver.org/CalDAVTester.html)
 
 ## caldavtest.php
 Wrapper allowing to record and and aggregate results of CalDAVTester:
@@ -16,13 +16,13 @@ Wrapper allowing to record and and aggregate results of CalDAVTester:
 Usage: php caldavtests.php
 --results [--branch=<branch> (default 'trunk')]
   Aggregate results by script incl. number of tests success/failure/percentage
---run[=(<script-name>|<feature>|default(default)|all)] [--branch=<branch> (default 'trunk')] --revision <revision>
+--run[=(<script-name>|<feature>|default(default)|all)] [--branch=<branch> (default 'master')] --revision <revision>
   Run tests of given script, all scripts requiring given feature, default (enabled and not ignore-all taged) or all
---result-details[=(<script-name>|<feature>|default|all(default)] [--branch=<branch> (default 'trunk')]
+--result-details[=(<script-name>|<feature>|default|all(default)] [--branch=<branch> (default 'master')]
   List result details incl. test success/failure/logs
---delete=(<script>|<feature>|all) [--branch=(<branch>|all) (default 'trunk')]
+--delete=(<script>|<feature>|all) [--branch=(<branch>|all) (default 'master')]
   Delete test results of given script, all scripts requiring given feature or all
---import=<json-to-import>  --revision=<revision> [--branch=<branch> (default 'trunk')]
+--import=<json-to-import>  --revision=<revision> [--branch=<branch> (default 'master')]
   Import a log as jsondump created with testcaldav.py --print-details-onfail --observer jsondump
 --scripts[=<script-name>|<feature>|default|all (default)]
   List scripts incl. required features for given script, feature, default (enabled and not ignore-all taged) or all
