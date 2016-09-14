@@ -32,6 +32,8 @@ Usage: php caldavtests.php
   Path to serverinfo.xml to use, default './serverinfo.xml'
 --git-sources
   Path to sources to use Git to automatic determine branch&revision
+--gui[=[<bind-addr> (default localhost)][:port (default 8080)]]
+  Run WebGUI: point your browser at given address, default http://localhost:8080/
 --help|-h
   Display this help message
   ```

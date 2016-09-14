@@ -44,6 +44,7 @@ if (php_sapi_name() == 'cli')
 		'result-details::',	// list full results (optional of given script)
 		'git-sources::',	// path to git sources to automatic determine branch&revision
 		'serverinfo::',	// path to serverinfo.xml
+		'gui::',
 	));
 	if (isset($options['h']) || isset($options['help']))
 	{
@@ -111,6 +112,14 @@ if (php_sapi_name() == 'cli')
 		if (empty($options['revision'])) usage(1, "Revision parameter --revision=<revision> is required!");
 		run($options['branch'], $options['revision'], $options['run']);
 	}
+	elseif (isset($options['gui']))
+	{
+		if (empty($options['gui'])) $options['gui'] = 'localhost:8080';
+		$cmd = 'php -S '.escapeshellarg($options['gui']).' -t '.__DIR__.' '.__FILE__;
+		error_log($cmd."\n");
+		error_log("Go to http://$options[gui]/ or use Ctrl C to stop WebGUI.\n");
+		exec($cmd);
+	}
 	else
 	{
 		usage();
@@ -118,8 +127,21 @@ if (php_sapi_name() == 'cli')
 	exit;
 }
 
-// run via webserver
-display_results($_REQUEST['branch'], true);	// true = return html
+// run via (buildin) webserver
+if ($_SERVER['PHP_SELF'] != '/' && substr($_SERVER['PHP_SELF'], -4) !== '.php')
+{
+	return false;	// let cli webserver deal with static content
+}
+if (empty($_REQUEST['script']))
+{
+	display_results($branch, true);	// true = return html
+}
+else
+{
+	header('Content-Type: text/plain');
+	display_result_details(!empty($_REQUEST['branch']) ? $_REQUEST['branch'] : $branch,
+		$_REQUEST['script']);
+}
 exit;
 
 /**
@@ -144,7 +166,7 @@ function usage($exit_code=0, $error_msg='')
 	echo "Usage: php $cmd\n";
 	echo "--results [--branch=<branch> (default '$branch')]\n";
 	echo "  Aggregate results by script incl. number of tests success/failure/percentage\n";
-	echo "--run[=(<script-name>|<feature>|default(default)|all)] [--branch=<branch> (default '$branch')] [--revision <revision> (default '$revision')]\n";
+	echo "--run[=(<script-name>|<feature>|default(default)|all)] [--branch=<branch> (default '$branch')] [--revision=<revision> (default '$revision')]\n";
 	echo "  Run tests of given script, all scripts requiring given feature, default (enabled and not ignore-all taged) or all\n";
 	echo "--result-details[=(<script-name>|<feature>|default|all(default)] [--branch=<branch> (default 'trunk')]\n";
 	echo "  List result details incl. test success/failure/logs\n";
@@ -160,6 +182,8 @@ function usage($exit_code=0, $error_msg='')
 	echo "  Path to serverinfo.xml to use, default '$serverinfo'\n";
 	echo "--git-sources\n";
 	echo "  Path to sources to use Git to automatic determine branch&revision, default '$git_sources'\n";
+	echo "--gui[=[<bind-addr> (default localhost)][:port (default 8080)]]\n";
+	echo "  Run WebGUI: point your browser at given address, default http://localhost:8080/\n";
 	echo "--help|-h\n";
 	echo "  Display this help message\n";
 
@@ -170,20 +194,22 @@ function usage($exit_code=0, $error_msg='')
  * Display available scripts incl. results
  *
  * @param string $branch
- * @param boolean $html
+ * @param boolean $html =false
  */
 function display_results($branch, $html=false)
 {
-	$line = 0;
+	if (!$html)
+	{
+		echo "Percent\tSuccess\tFailed\tScript\t(Features)\tFile\n";
+	}
+	else
+	{
+		html_header();
+		echo "<table class='results'>\n";
+		echo "<tr class='header'><th></th><th>Percent</th><th>Success</th><th>Failed</th><th>Script (Features)</th><th>File</th></tr>\n";
+	}
 	foreach(get_script_results($branch) as $script)
 	{
-		if (!$line++)
-		{
-			if (!$html)
-			{
-				echo "Percent\tSuccess\tFailed\tScript\t(Features)\tFile\n";
-			}
-		}
 		if (empty($script['description']))
 		{
 			$script['description'] = strtr($script['name'], array(
@@ -200,7 +226,47 @@ function display_results($branch, $html=false)
 			continue;
 		}
 		// todo html
+		if (empty($script['name']))
+		{
+			echo "<tr class='footer'><td></td>";
+		}
+		else
+		{
+			echo "<tr id='".htmlspecialchars($script['name'])."' class='".
+				($script['percent']==100.0?'green':($script['percent'] < 50.0 ? 'red' : 'yellow'))."'>".
+				"<td class='expand'></td>";
+		}
+		echo "<td class='percent'>".htmlspecialchars($script['percent']).
+			"</td><td class='success'>".htmlspecialchars($script['success']).
+			"</td><td class='failed'>".htmlspecialchars($script['failed']).
+			"</td><td>".htmlspecialchars($script['description']).
+				($script['require-feature'] ? ' ('.htmlspecialchars(implode(', ', $script['require-feature'])).')' : '').
+			"</td><td>".htmlspecialchars($script['name'])."</td><tr>\n";
 	}
+	if ($html)
+	{
+		echo "</table>\n</body>\n</html\n";
+	}
+}
+
+/**
+ * Output html header incl. body tag
+ */
+function html_header()
+{
+	echo "<html>\n<head>\n";
+	echo "\t<title>CalDAVTester GUI</title>\n";
+	if (file_exists(__DIR__.'/jquery.js'))
+	{
+		echo "\t<script src='jquery.js'></script>\n";
+	}
+	else
+	{
+		echo "\t<script src='https://code.jquery.com/jquery-3.1.0.slim.min.js' integrity='sha256-cRpWjoSOw5KcyIOaZNo4i6fZ9tKPhYYb6i5T9RSVJG8=' crossorigin='anonymous'></script>\n";
+	}
+	echo "\t<script src='gui.js'></script>\n";
+	echo "\t<link type='text/css' href='gui.css' rel='StyleSheet'/>\n";
+	echo "</head>\n<body>\n";
 }
 
 /**

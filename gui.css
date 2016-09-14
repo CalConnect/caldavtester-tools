@@ -1,0 +1,61 @@
+/**
+ * Analyse and display logs of CalDAVTester
+ *
+ * @author Ralf Becker <rb@stylite.de>
+ * @license http://opensource.org/licenses/Apache-2.0 Apache License, Version 2.0
+ *
+ * @link https://www.calendarserver.org/CalDAVTester.html
+ * @link https://github.com/CalConnect/caldavtester-tools
+ */
+
+tr.header {
+	text-align: left;
+	background-color: #f0f0f0;
+}
+tr.header > th {
+	padding: 3px;
+	padding-top: 5px;
+	padding-left: 5px;
+}
+tr.green {
+	background-color: #e3f9e3;
+}
+tr.yellow {
+	background-color: lightgoldenrodyellow;
+}
+tr.red {
+	background-color: #fbe1e1;
+}
+td {
+	padding-left: 5px;
+}
+td.percent, td.success, td.failed {
+	text-align: right;
+	padding-right: 10px;
+}
+tr.footer {
+	text-align: left;
+	font-weight: bold;
+}
+td.expand, td.collapse {
+	background-image: url(images/expand.png);
+	background-repeat: no-repeat;
+	background-position: center;
+	width: 16px;
+	cursor: pointer;
+}
+td.collapse {
+	background-image: url(images/collapse.png);
+}
+tr.details {
+
+}
+td.spinner {
+	background-image: url(images/spinner.gif);
+	background-repeat: no-repeat;
+	background-position: center;
+	height: 20px;
+}
+td.output {
+	white-space: pre-wrap;
+}
