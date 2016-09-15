@@ -37,3 +37,14 @@ Usage: php caldavtests.php
 --help|-h
   Display this help message
   ```
+### Installation instructions
+```
+git clone git@github.com:apple/ccs-caldavtester.git CalDAVTester
+cd CalDAVTester
+git clone git@github.com:apple/ccs-pycalendar.git pycalendar
+git clone git@github.com:calconect/caldavtester-tools
+ln -s scripts/server/serverinfo.xml
+# edit serverinfo.xml: eg. url of your server, features, etc
+php caldavtester-tools/caldavtests.php --run # run/record tests for first time
+php caldavtester-tools/caldavtests.php --gui # launch WebGUI at http://localhost:8080/
+```
