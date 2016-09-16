@@ -47,15 +47,29 @@ td.expand, td.collapse {
 td.collapse {
 	background-image: url(images/collapse.png);
 }
-tr.details {
-
+table.details {
+	width: 100%;
 }
 td.spinner {
 	background-image: url(images/spinner.gif);
 	background-repeat: no-repeat;
-	background-position: center;
-	height: 20px;
+	background-position: top center;
+	min-height: 20px;
+}
+td.run {
+	background-image: url(images/run.png);
+	background-repeat: no-repeat;
+	background-position: 5px 5px;
+	background-size: 12px;
+	cursor: pointer;
 }
 td.output {
 	white-space: pre-wrap;
+}
+td.script > a, td.revision > a {
+	text-decoration: none;
+	color: black;
+}
+td.script > a:hover, td.revision > a:hover {
+	text-decoration: underline;
 }

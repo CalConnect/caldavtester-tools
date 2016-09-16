@@ -10,7 +10,9 @@
 
 jQuery().ready(function()
 {
-	jQuery('td.expand,td.collapse').click(function(_ev)
+	var commit_url = jQuery('table.results').attr('data-commit-url');
+
+	jQuery('table.results').on('click', 'td.expand,td.collapse', function(_ev)
 	{
 		var tr = jQuery(this.parentElement);
 		var details = tr.nextAll('tr').first();
@@ -22,9 +24,17 @@ jQuery().ready(function()
 				var spinner = jQuery('<td class="spinner">').appendTo(details);
 				var output = jQuery('<td colspan="5" class="output">').appendTo(details);
 				tr.after(details);
-				jQuery.ajax(location.href+'?script='+tr[0].id).done(function(_data)
+				jQuery.ajax(location.href+'?script='+encodeURIComponent(tr[0].id)).done(function(_data)
 				{
-					output.text(_data);
+					output.html(_data);
+					// link revisions to eg. Github
+					if (commit_url)
+					{
+						output.find('td.revision').wrapInner(function()
+						{
+							return '<a href="'+commit_url+this.textContent+'" target="_blank">';
+						});
+					}
 					spinner.removeClass('spinner');
 				});
 			}
@@ -39,5 +49,10 @@ jQuery().ready(function()
 		}
 		jQuery(this).toggleClass('expand')
 			.toggleClass('collapse');
+	});
+	// allow to fetch scripts
+	jQuery('td.script').wrapInner(function()
+	{
+		return '<a href="'+location.href+'?fetch='+encodeURIComponent(this.textContent)+'" target="_blank">';
 	});
 });

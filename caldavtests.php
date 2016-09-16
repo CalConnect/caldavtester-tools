@@ -20,6 +20,8 @@ $db_path = $caldavtester_dir.'/results.sqlite';
 $git_sources = realpath('../egroupware');
 $branch = 'master';
 $revision = '';
+// to link revisions to commits
+$commit_url = 'https://github.com/EGroupware/egroupware/commit/';
 
 if (!file_exists($caldavtester_dir) || !file_exists($caldavtester_dir.'/testcaldav.py'))
 {
@@ -132,15 +134,29 @@ if ($_SERVER['PHP_SELF'] != '/' && substr($_SERVER['PHP_SELF'], -4) !== '.php')
 {
 	return false;	// let cli webserver deal with static content
 }
-if (empty($_REQUEST['script']))
+// fetch test scripts
+if(!empty($_REQUEST['fetch']))
+{
+	header('Content-Type: application/xml; charset=utf-8');
+	if (file_exists($script=$caldavtester_dir.'/'.$testspath.'/'.str_replace('../', '', $_REQUEST['fetch'])))
+	{
+		header('Content-Length: '.filesize($script));
+		header('ETag: "'.filemtime($script).'"');
+		readfile($script);
+	}
+	else
+	{
+		header("HTTP/1.1 404 Not Found");
+	}
+}
+elseif (empty($_REQUEST['script']))
 {
 	display_results($branch, true);	// true = return html
 }
 else
 {
-	header('Content-Type: text/plain');
 	display_result_details(!empty($_REQUEST['branch']) ? $_REQUEST['branch'] : $branch,
-		$_REQUEST['script']);
+		$_REQUEST['script'], true);
 }
 exit;
 
@@ -198,6 +214,8 @@ function usage($exit_code=0, $error_msg='')
  */
 function display_results($branch, $html=false)
 {
+	global $commit_url;
+
 	if (!$html)
 	{
 		echo "Percent\tSuccess\tFailed\tScript\t(Features)\tFile\n";
@@ -205,7 +223,7 @@ function display_results($branch, $html=false)
 	else
 	{
 		html_header();
-		echo "<table class='results'>\n";
+		echo "<table class='results' data-commit-url='".htmlspecialchars($commit_url)."'>\n";
 		echo "<tr class='header'><th></th><th>Percent</th><th>Success</th><th>Failed</th><th>Script (Features)</th><th>File</th></tr>\n";
 	}
 	foreach(get_script_results($branch) as $script)
@@ -241,7 +259,7 @@ function display_results($branch, $html=false)
 			"</td><td class='failed'>".htmlspecialchars($script['failed']).
 			"</td><td>".htmlspecialchars($script['description']).
 				($script['require-feature'] ? ' ('.htmlspecialchars(implode(', ', $script['require-feature'])).')' : '').
-			"</td><td>".htmlspecialchars($script['name'])."</td><tr>\n";
+			"</td><td class='script'>".htmlspecialchars($script['name'])."</td><tr>\n";
 	}
 	if ($html)
 	{
@@ -381,23 +399,57 @@ function display_result_details($branch, $what='all', $html=false)
 {
 	global $db;
 
-	$select = $db->prepare('SELECT results.*,scripts.label AS script_label,scripts.details AS script_details,suites.label AS suite_label
+	$select = $db->prepare("SELECT results.*,scripts.label AS script_label,scripts.details AS script_details,suites.label AS suite_label,
+branch.label AS branch_label,
+COALESCE(success.label,success) AS success_revision,
+COALESCE(failed.label,failed) AS failed_revision,
+COALESCE(first_failed.label,first_failed) AS first_failed_revision
 FROM results
+JOIN labels AS branch ON results.branch=branch.id AND branch.details='***branch***'
 JOIN labels AS scripts ON results.script=scripts.id
 JOIN labels AS suites ON results.suite=suites.id
-WHERE branch=:branch'.limit_script_sql($what).'
+LEFT JOIN labels AS success ON results.success=success.id AND success.details='***revision***'
+LEFT JOIN labels AS failed ON results.failed=failed.id AND failed.details='***revision***'
+LEFT JOIN labels AS first_failed ON results.first_failed=first_failed.id AND first_failed.details='***revision***'
+WHERE branch=:branch".limit_script_sql($what).'
 ORDER BY script,suite,test');
 	$select->setFetchMode(PDO::FETCH_ASSOC);
 	if ($select->execute(array(
 		'branch' => label2id($branch),
 	)))
 	{
+		if ($html)
+		{
+			echo "<table class='details'>\n";
+			echo "<tr class='header'><th></th><th>Script</th><th>Suite</th><th>Test</th><th>Branch</th><th>Revision</th><th>First failed</th></tr>\n";
+		}
 		foreach($select as $result)
 		{
 			if (!$html)
 			{
-				echo "\n$result[script_label]\t$result[suite_label]\t$result[test]\t$result[success]\t$result[failed]\t$result[first_failed]\n$result[details]\n";
+				echo "\n$result[script_label]\t$result[suite_label]\t$result[test]\t$result[branch_label]\t$result[success_revision]\t$result[failed_revision]\t$result[first_failed_revision]\n$result[details]\n";
 				continue;
+			}
+			if (!empty($result['success']))
+			{
+				echo '<tr class="green"><td>';
+			}
+			else
+			{
+				echo '<tr class="red"><td class="expand">';
+			}
+			echo "</td><td>".htmlspecialchars($result['script_label']).
+				"</td><td>".htmlspecialchars($result['suite_label']).
+				"</td><td>".htmlspecialchars($result['test']).
+				"</td><td>".htmlspecialchars($result['branch_label']).
+				"</td><td class='revision'>".htmlspecialchars(!empty($result['success']) ? $result['success_revision'] : $result['failed_revision']).
+				(empty($result['first_failed_revision']) ? "</td><td>" :
+					"</td><td class='revision'>".htmlspecialchars($result['first_failed_revision'])).
+				"</td></tr>\n";
+
+			if (!empty($result['details']))
+			{
+				echo '<tr style="display:none" class="details"><td></td><td colspan="6" class="output">'.htmlspecialchars($result['details'])."</td></tr>\n";
 			}
 		}
 	}
@@ -752,12 +804,4 @@ function setup_db($_db_path)
 	//error_log('schema_version='.$db->query('SELECT label FROM labels WHERE id=1')->fetchColumn());
 
 	return $db;
-}
-
-/**
- * Check if we have a $git_source path set and can get a revision and path from there
- */
-function default_revision()
-{
-
 }
