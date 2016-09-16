@@ -20,8 +20,9 @@ $db_path = $caldavtester_dir.'/results.sqlite';
 $git_sources = realpath('../egroupware');
 $branch = 'master';
 $revision = '';
-// to link revisions to commits
-$commit_url = 'https://github.com/EGroupware/egroupware/commit/';
+// to link revisions to commits, get autodetected for Github.com
+$commit_url = '';	// equivalent of 'https://github.com/EGroupware/egroupware/commit/';
+config_from_git($git_sources);
 
 if (!file_exists($caldavtester_dir) || !file_exists($caldavtester_dir.'/testcaldav.py'))
 {
@@ -67,12 +68,7 @@ if (php_sapi_name() == 'cli')
 			usage(6, "Specified Git sources '$options[serverinfo]/.git' not found!");
 		}
 		$git_sources = realpath($options['git-sources']);
-	}
-	// only run git stuff, if sources exist, are git and git cli is available
-	if (@file_exists($git_sources.'/.git') && !exec("hash git 2>/dev/null"))
-	{
-		$branch = trim(exec("cd $git_sources >/dev/null 2>&1 && git branch --no-color  2>/dev/null | sed -e '/^[^*]/d' -e \"s/* \(.*\)/\\1/\""));
-		$revision = exec("cd $git_sources >/dev/null 2>&1 && git rev-parse --short HEAD &2>/dev/null");
+		config_from_git($git_sources);
 	}
 	if (!isset($options['branch']))
 	{
@@ -163,6 +159,30 @@ exit;
 /**
  * from here on only functions called from above controlers for cli or webserver
  */
+
+/**
+ * Guess config from git clone
+ *
+ * @param string $git_sources
+ */
+function config_from_git($git_sources)
+{
+	global $branch, $revision, $commit_url;
+
+	// only run git stuff, if sources exist, are git and git cli is available
+	if (@file_exists($git_sources.'/.git') && !exec("hash git 2>/dev/null"))
+	{
+		$branch = trim(exec("cd $git_sources >/dev/null 2>&1 && git branch --no-color  2>/dev/null | sed -e '/^[^*]/d' -e \"s/* \(.*\)/\\1/\""));
+		$revision = exec("cd $git_sources >/dev/null 2>&1 && git rev-parse --short HEAD &2>/dev/null");
+		$matches = null;
+		if (empty($commit_url) &&
+			($remote = exec("cd $git_sources >/dev/null 2>&1 && git remote -v &2>/dev/null")) &&
+			preg_match('/(git@github.com:|https:\/\/github.com\/)(.*)\.git/i', $remote, $matches))
+		{
+			$commit_url = 'https://github.com/'.$matches[2].'/commit/';
+		}
+	}
+}
 
 /**
  * Display usage incl. optional error-message and exit(!)
