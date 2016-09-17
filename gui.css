@@ -37,14 +37,14 @@ tr.footer {
 	text-align: left;
 	font-weight: bold;
 }
-td.expand, td.collapse {
+td.expand, td.collapse, th.expandAll, th.collapseAll {
 	background-image: url(images/expand.png);
 	background-repeat: no-repeat;
 	background-position: center;
 	width: 16px;
 	cursor: pointer;
 }
-td.collapse {
+td.collapse, th.collapseAll {
 	background-image: url(images/collapse.png);
 }
 table.details {

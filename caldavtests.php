@@ -441,7 +441,7 @@ ORDER BY script,suite,test');
 		if ($html)
 		{
 			echo "<table class='details'>\n";
-			echo "<tr class='header'><th></th><th>Script</th><th>Suite</th><th>Test</th><th>Branch</th><th>Revision</th><th>First failed</th></tr>\n";
+			echo "<tr class='header'><th class='expandAll'></th><th>Script</th><th>Suite</th><th>Test</th><th>Branch</th><th>Revision</th><th>First failed</th></tr>\n";
 		}
 		foreach($select as $result)
 		{
