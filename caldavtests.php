@@ -9,15 +9,18 @@
  * @link https://github.com/CalConnect/caldavtester-tools
  */
 
+// change to directory of script (not done automatic for cli), so all pathes are relative from here
+chdir(__DIR__);
+
 // configuration
-$caldavtester_dir = realpath('../CalDAVTester');
+$caldavtester_dir = realpath('..');
 $caldavtester = 'PYTHONPATH=pycalendar/src '.$caldavtester_dir.'/testcaldav.py --print-details-onfail --observer jsondump';
 $serverinfo = $caldavtester_dir.'/serverinfo.xml';
 $testspath = 'scripts/tests/';	// must be stripped off when calling testcaldav.py
 $db_path = $caldavtester_dir.'/results.sqlite';
 
 // path to git sources to automatic get branch&revision, you can also hardcode default branch&revision here
-$git_sources = realpath('../egroupware');
+$git_sources = realpath($caldavtester_dir.'/../egroupware');
 $branch = 'master';
 $revision = '';
 // to link revisions to commits, get autodetected for Github.com
