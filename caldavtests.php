@@ -14,7 +14,7 @@ chdir(__DIR__);
 
 // configuration
 $caldavtester_dir = realpath('..');
-$caldavtester = 'PYTHONPATH=pycalendar/src '.$caldavtester_dir.'/testcaldav.py --print-details-onfail --observer jsondump';
+$caldavtester = "cd $caldavtester_dir; PYTHONPATH=pycalendar/src ./testcaldav.py --print-details-onfail --observer jsondump";
 $serverinfo = $caldavtester_dir.'/serverinfo.xml';
 $testspath = 'scripts/tests/';	// must be stripped off when calling testcaldav.py
 $db_path = $caldavtester_dir.'/results.sqlite';
