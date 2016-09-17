@@ -50,7 +50,6 @@ php caldavtester-tools/caldavtests.php --gui # launch WebGUI at http://localhost
 ```
 
 ### ToDo
-* check tests of disabled features, seem to be recogniced as failed, idea they are neither marked as success nor failed in db
 * allow to ignore single test results incl. a comment why
 * import/export tests-to-ignore data
 * run tests from gui

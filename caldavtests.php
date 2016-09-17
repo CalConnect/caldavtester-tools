@@ -446,20 +446,29 @@ ORDER BY script,suite,test');
 			echo "<table class='details'>\n";
 			echo "<tr class='header'><th class='expandAll'></th><th>Script</th><th>Suite</th><th>Test</th><th>Branch</th><th>Revision</th><th>First failed</th></tr>\n";
 		}
+		else
+		{
+			echo "Script\t\t\tSuite\t\t\tTest\tBranch\tRevision\tFirst failed\n\n";
+		}
 		foreach($select as $result)
 		{
 			if (!$html)
 			{
-				echo "\n$result[script_label]\t$result[suite_label]\t$result[test]\t$result[branch_label]\t$result[success_revision]\t$result[failed_revision]\t$result[first_failed_revision]\n$result[details]\n";
+				echo "\n$result[script_label]\t$result[suite_label]\t$result[test]\t$result[branch_label]\t$result[success_revision]\t$result[failed_revision]\t$result[first_failed_revision]\n";
+				if (!empty($result['details'])) echo "$result[details]\n";
 				continue;
 			}
 			if (!empty($result['success']))
 			{
 				echo '<tr class="green"><td>';
 			}
-			else
+			elseif (!empty($result['failed']))
 			{
 				echo '<tr class="red"><td class="expand">';
+			}
+			else
+			{
+				echo '<tr class="ignored"><td class="expand">';
 			}
 			echo "</td><td>".htmlspecialchars($result['script_label']).
 				"</td><td>".htmlspecialchars($result['suite_label']).
@@ -532,7 +541,7 @@ function get_script_results($branch)
 	$select = $db->prepare(
 'SELECT script,scripts.details AS description,
 	scripts.label AS name,COUNT(success) AS success,COUNT(failed) AS failed,
-	ROUND(100.0*COUNT(success)/COUNT(*),1) AS percent
+	ROUND(100.0*COUNT(success)/(COUNT(success)+COUNT(failed)),1) AS percent
 FROM results
 JOIN labels AS scripts ON results.script=scripts.id
 JOIN labels AS suites ON results.suite=suites.id
@@ -599,7 +608,7 @@ function import($_branch, $_revision, $_file)
 	$branch = label2id($_branch, '***branch***');
 	$revision = is_numeric($_revision) ? $_revision : label2id($_revision, '***revision***');
 
-	$updated = $inserted = $succieded = $failed = $new_failures = 0;
+	$updated = $inserted = $succieded = $failed = $ignored = $new_failures = 0;
 	$insert = $update = $select = null;
 	foreach($scripts as $script)
 	{
@@ -636,6 +645,12 @@ function import($_branch, $_revision, $_file)
 					$data['failed'] = $data['first_failed'] = $data['details'] = null;
 					$succieded++;
 				}
+				elseif ($test['result'] == 3)	// missing feature
+				{
+					$data['success'] = $data['failed'] = $data['first_failed'] = null;
+					$data['details'] = $test['details'];
+					$ignored++;
+				}
 				else	// failure
 				{
 					$data['failed'] = $revision;
@@ -662,7 +677,7 @@ function import($_branch, $_revision, $_file)
 			}
 		}
 	}
-	error_log("\n$new_failures new failures, $failed total failures, $succieded tests succieded ($updated tests updated, $inserted newly inserted)");
+	error_log("\n$new_failures new failures, $failed total failures, $succieded tests succieded, $ignored tests ignored ($updated tests updated, $inserted newly inserted)");
 }
 
 /**
