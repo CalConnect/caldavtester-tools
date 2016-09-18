@@ -63,7 +63,7 @@ jQuery().ready(function()
 				{
 					var details = jQuery('<tr class="details">');
 					var spinner = jQuery('<td class="spinner">').appendTo(details);
-					var output = jQuery('<td colspan="6" class="output">').appendTo(details);
+					var output = jQuery('<td colspan="6" class="output">&nbsp;</td>').appendTo(details);
 					tr.after(details);
 					jQuery.ajax(location.href+'?result='+encodeURIComponent(tr[0].id)).done(function(_data)
 					{

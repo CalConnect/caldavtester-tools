@@ -57,7 +57,6 @@ td.spinner {
 	background-image: url(images/spinner.gif);
 	background-repeat: no-repeat;
 	background-position: 3px 8px;
-	min-height: 20px;
 }
 td.run {
 	background-image: url(images/run.png);
@@ -68,6 +67,7 @@ td.run {
 }
 td.output {
 	white-space: pre-wrap;
+	line-height: 28px;
 }
 td.script > a, td.revision > a {
 	text-decoration: none;
