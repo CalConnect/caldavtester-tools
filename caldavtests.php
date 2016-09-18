@@ -85,7 +85,7 @@ if (php_sapi_name() == 'cli')
 	{
 		if (empty($options['revision'])) usage(1, "Revision parameter --revision=<revision> is required!");
 		if (!file_exists($_file)) usage(2, "File '$_file' not found!");
-		import($options['branch'], $options['revision'], $options['import'])."\n";
+		import($options['branch'], $options['revision'], $options['import']);
 	}
 	elseif (isset($options['results']))
 	{
@@ -134,10 +134,10 @@ if ($_SERVER['PHP_SELF'] != '/' && substr($_SERVER['PHP_SELF'], -4) !== '.php')
 	return false;	// let cli webserver deal with static content
 }
 // fetch test scripts
-if(!empty($_REQUEST['fetch']))
+if(!empty($_REQUEST['script']))
 {
 	header('Content-Type: application/xml; charset=utf-8');
-	if (file_exists($script=$caldavtester_dir.'/'.$testspath.'/'.str_replace('../', '', $_REQUEST['fetch'])))
+	if (file_exists($script=$caldavtester_dir.'/'.$testspath.'/'.str_replace('../', '', $_REQUEST['script'])))
 	{
 		header('Content-Length: '.filesize($script));
 		header('ETag: "'.filemtime($script).'"');
@@ -148,14 +148,26 @@ if(!empty($_REQUEST['fetch']))
 		header("HTTP/1.1 404 Not Found");
 	}
 }
-elseif (empty($_REQUEST['script']))
+elseif (!empty($_REQUEST['result']))
 {
-	display_results($branch, true);	// true = return html
+	display_result_details(!empty($_REQUEST['branch']) ? $_REQUEST['branch'] : $branch,
+		$_REQUEST['result'], true);
+}
+elseif (!empty($_REQUEST['run']))
+{
+	$output = array();
+	exec($cmd='php ./caldavtests.php '.
+		(!empty($_REQUEST['branch']) ? escapeshellarg('--branch='.$_REQUEST['branch']).' ' : '').
+		escapeshellarg('--run='.$_REQUEST['run']), $output, $ret);
+	error_log($cmd.' returned '.$ret);
+
+	// return results
+	display_result_details(!empty($_REQUEST['branch']) ? $_REQUEST['branch'] : $branch,
+		$_REQUEST['run'], true);
 }
 else
 {
-	display_result_details(!empty($_REQUEST['branch']) ? $_REQUEST['branch'] : $branch,
-		$_REQUEST['script'], true);
+	display_results($branch, true);	// true = return html
 }
 exit;
 
@@ -241,13 +253,14 @@ function display_results($branch, $html=false)
 
 	if (!$html)
 	{
-		echo "Percent\tSuccess\tFailed\tScript\t(Features)\tFile\n";
+		echo "Percent\tSuccess\tFailed\tScript\t(Features)\tFile\tUpdated\n";
 	}
 	else
 	{
+		$etag = check_send_etag($branch);
 		html_header();
-		echo "<table class='results' data-commit-url='".htmlspecialchars($commit_url)."'>\n";
-		echo "<tr class='header'><th></th><th>Percent</th><th>Success</th><th>Failed</th><th>Script (Features)</th><th>File</th></tr>\n";
+		echo "<table class='results' data-commit-url='".htmlspecialchars($commit_url)."' data-etag='".htmlspecialchars($etag)."'>\n";
+		echo "<tr class='header'><th></th><th>Percent</th><th>Success</th><th>Failed</th><th>Script (Features)</th><th>File</th><th>Updated</th></tr>\n";
 	}
 	foreach(get_script_results($branch) as $script)
 	{
@@ -263,7 +276,7 @@ function display_results($branch, $html=false)
 		if (!$html)
 		{
 			echo "$script[percent]\t$script[success]\t$script[failed]\t$script[description] (".
-				implode(', ', $script['require-feature']).")\t".$script['name']."\n";
+				implode(', ', $script['require-feature']).")\t$script[name]\t$script[updated]\n";
 			continue;
 		}
 		// todo html
@@ -282,11 +295,13 @@ function display_results($branch, $html=false)
 			"</td><td class='failed'>".htmlspecialchars($script['failed']).
 			"</td><td>".htmlspecialchars($script['description']).
 				($script['require-feature'] ? ' ('.htmlspecialchars(implode(', ', $script['require-feature'])).')' : '').
-			"</td><td class='script'>".htmlspecialchars($script['name'])."</td><tr>\n";
+			"</td><td class='script'>".htmlspecialchars($script['name']).
+			"</td><td class='updated'>".htmlspecialchars(substr($script['updated'], 0, -3)).
+			"</td><tr>\n";
 	}
 	if ($html)
 	{
-		echo "</table>\n</body>\n</html\n";
+		echo "</table>\n</body>\n</html>\n";
 	}
 }
 
@@ -411,6 +426,38 @@ function display_scripts($what='all')
 }
 
 /**
+ * Check if request contains a If-None-Match header and send 314 Not Matched or ETag header
+ *
+ * Function does NOT return, if If-None-Match matches current ETag.
+ *
+ * @param string $branch
+ * @param string $what =null eg. script-name, see limit_script_sql
+ * @return string etag send as header
+ */
+function check_send_etag($branch, $what=null)
+{
+	global $db;
+
+	$branch_id = label2id($branch);
+
+	// using MAX(update)+SUM(time) as ETag
+	$get_etag = $db->prepare($sql="SELECT MAX(updated)||' '||COALESCE(SUM(time),'') FROM results WHERE branch=:branch".
+		(empty($what) ? '' : limit_script_sql($what)));
+	$etag = $get_etag->execute(array('branch' => $branch_id)) ? $get_etag->fetchColumn() : null;
+	//error_log(__METHOD__."('$branch', '$what') sql='$sql', etag='$etag'");
+
+	// process If-None-Match header used to poll running script results
+	if (isset($_SERVER['HTTP_IF_NONE_MATCH']) && substr($_SERVER['HTTP_IF_NONE_MATCH'], 1, -1) == $etag)
+	{
+		header('HTTP/1.1 304 Not Modified');
+		exit;
+	}
+	header('ETag: "'.$etag.'"');
+
+	return $etag;
+}
+
+/**
  * Display all recorded results
  *
  * @global PDO $db
@@ -421,6 +468,8 @@ function display_scripts($what='all')
 function display_result_details($branch, $what='all', $html=false)
 {
 	global $db;
+
+	if ($html) $etag = check_send_etag($branch, $what);
 
 	$select = $db->prepare("SELECT results.*,scripts.label AS script_label,scripts.details AS script_details,suites.label AS suite_label,
 branch.label AS branch_label,
@@ -443,32 +492,41 @@ ORDER BY script,suite,test');
 	{
 		if ($html)
 		{
-			echo "<table class='details'>\n";
-			echo "<tr class='header'><th class='expandAll'></th><th>Script</th><th>Suite</th><th>Test</th><th>Branch</th><th>Revision</th><th>First failed</th></tr>\n";
+			echo "<table class='details' data-etag='".htmlspecialchars($etag)."'>\n";
+			echo "<tr class='header'><th class='expandAll'></th><th>Script</th><th>Suite</th><th>Test</th><th>Branch</th><th>Revision</th><th>First failed</th><th>Time</th></tr>\n";
 		}
 		else
 		{
-			echo "Script\t\t\tSuite\t\t\tTest\tBranch\tRevision\tFirst failed\n\n";
+			echo "Script\t\t\tSuite\t\t\tTest\tBranch\tRevision\tFirst failed\tTime\n\n";
 		}
 		foreach($select as $result)
 		{
+			$result['time'] = number_format($result['time'], 2);
 			if (!$html)
 			{
-				echo "\n$result[script_label]\t$result[suite_label]\t$result[test]\t$result[branch_label]\t$result[success_revision]\t$result[failed_revision]\t$result[first_failed_revision]\n";
+				echo "\n$result[script_label]\t$result[suite_label]\t$result[test]\t$result[branch_label]\t$result[success_revision]\t$result[failed_revision]\t$result[first_failed_revision]\t$result[time]\n";
 				if (!empty($result['details'])) echo "$result[details]\n";
 				continue;
 			}
 			if (!empty($result['success']))
 			{
-				echo '<tr class="green"><td>';
+				echo '<tr class="green">';
 			}
 			elseif (!empty($result['failed']))
 			{
-				echo '<tr class="red"><td class="expand">';
+				echo '<tr class="red">';
 			}
 			else
 			{
-				echo '<tr class="ignored"><td class="expand">';
+				echo '<tr class="ignored">';
+			}
+			if (!empty($result['details']) || !empty($result['protocol']))
+			{
+				echo '<td class="expand">';
+			}
+			else
+			{
+				echo '<td>';
 			}
 			echo "</td><td>".htmlspecialchars($result['script_label']).
 				"</td><td>".htmlspecialchars($result['suite_label']).
@@ -477,11 +535,12 @@ ORDER BY script,suite,test');
 				"</td><td class='revision'>".htmlspecialchars(!empty($result['success']) ? $result['success_revision'] : $result['failed_revision']).
 				(empty($result['first_failed_revision']) ? "</td><td>" :
 					"</td><td class='revision'>".htmlspecialchars($result['first_failed_revision'])).
+				"</td><td title='".htmlspecialchars($result['updated'])."'>".htmlspecialchars($result['time']).
 				"</td></tr>\n";
 
-			if (!empty($result['details']))
+			if (!empty($result['details']) || !empty($result['protocol']))
 			{
-				echo '<tr style="display:none" class="details"><td></td><td colspan="6" class="output">'.htmlspecialchars($result['details'])."</td></tr>\n";
+				echo '<tr style="display:none" class="details"><td></td><td colspan="6" class="output">'.htmlspecialchars($result['details']).htmlspecialchars($result['protocol'])."</td></tr>\n";
 			}
 		}
 	}
@@ -541,7 +600,8 @@ function get_script_results($branch)
 	$select = $db->prepare(
 'SELECT script,scripts.details AS description,
 	scripts.label AS name,COUNT(success) AS success,COUNT(failed) AS failed,
-	ROUND(100.0*COUNT(success)/(COUNT(success)+COUNT(failed)),1) AS percent
+	ROUND(100.0*COUNT(success)/(COUNT(success)+COUNT(failed)),1) AS percent,
+	SUM(time) AS time,MAX(updated) AS updated
 FROM results
 JOIN labels AS scripts ON results.script=scripts.id
 JOIN labels AS suites ON results.suite=suites.id
@@ -585,6 +645,7 @@ ORDER BY percent DESC,description ASC');
 			'name' => '',
 			'ignore-all' => false,
 			'require-feature' => array(),
+			'updated' => '',
 		);
 	}
 	return $results;
@@ -597,12 +658,21 @@ ORDER BY percent DESC,description ASC');
  * @param string $_branch
  * @param string $_revision
  * @param string|resource $_file path or open filepointer
+ * @return string|null content of json file, if not understood, eg. Python trace on error
  */
 function import($_branch, $_revision, $_file)
 {
 	global $db, $testspath;
 
-	$scripts = json_decode(is_resource($_file) ? stream_get_contents($_file) : file_get_contents($_file), true);
+	static $prefix = '[{"result": null, "tests":';
+
+	$json = is_resource($_file) ? stream_get_contents($_file) : file_get_contents($_file);
+	if (substr($json, 0, strlen($prefix)) !== $prefix)
+	{
+		error_log($json);
+		return $json;
+	}
+	$scripts = json_decode($json, true);
 	//print_r($scripts);
 
 	$branch = label2id($_branch, '***branch***');
@@ -624,6 +694,11 @@ function import($_branch, $_revision, $_file)
 			{
 				echo "$script[name] ($script_id)\t$suite[name] ($suite_id)\t$test[name]\t$test[result]\n";
 				if (!empty($test['details'])) echo "$test[details]\n";
+				if (!empty($test['protocol']))
+				{
+					$test['protocol'] = implode("\n", (array)$test['protocol']);
+					echo "$test[protocol]\n";
+				}
 				if (!isset($select))
 				{
 					$select = $db->prepare('SELECT * FROM results WHERE branch=:branch AND script=:script AND suite=:suite AND test=:test');
@@ -638,23 +713,26 @@ function import($_branch, $_revision, $_file)
 				{
 					//print_r($result);
 				}
-				$data = array('updated' => date('Y-m-d H:i:s'));
-				if (!$test['result'])	// success
+				$data = array(
+					'updated' => empty($test['time']) ? date('Y-m-d H:i:s') : date('Y-m-d H:i:s', $test['time']),
+					'time' => empty($test['time']) ? null : $test['time']-$suite['time'],
+					'details' => empty($test['details']) ? null : $test['details'],
+					'protocol' => empty($test['protocol']) ? null : $test['protocol'],
+				);
+				if (!$test['result'])	// 0=success
 				{
 					$data['success'] = $revision;
 					$data['failed'] = $data['first_failed'] = $data['details'] = null;
 					$succieded++;
 				}
-				elseif ($test['result'] == 3)	// missing feature
+				elseif ($test['result'] == 3)	// 3=ignored, eg. missing feature
 				{
 					$data['success'] = $data['failed'] = $data['first_failed'] = null;
-					$data['details'] = $test['details'];
 					$ignored++;
 				}
-				else	// failure
+				else	// 1=failed or 2=error (internal error in tester or test)
 				{
 					$data['failed'] = $revision;
-					$data['details'] = $test['details'];
 					if (!$result || !$result['first_failed'])
 					{
 						$data['first_failed'] = $revision;
@@ -664,14 +742,14 @@ function import($_branch, $_revision, $_file)
 				}
 				if ($result)
 				{
-					if (!isset($update)) $update = $db->prepare('UPDATE results SET success=:success,first_failed=:first_failed,failed=:failed,details=:details,updated=:updated WHERE branch=:branch AND script=:script AND suite=:suite AND test=:test');
+					if (!isset($update)) $update = $db->prepare('UPDATE results SET success=:success,first_failed=:first_failed,failed=:failed,details=:details,updated=:updated,time=:time,protocol=:protocol WHERE branch=:branch AND script=:script AND suite=:suite AND test=:test');
 					$update->execute(array_merge($result, $data));
 					$updated++;
 				}
 				else
 				{
-					if (!isset($insert)) $insert = $db->prepare('INSERT INTO results (branch,script,suite,test,success,first_failed,failed,details,updated) VALUES (:branch,:script,:suite,:test,:success,:first_failed,:failed,:details,:updated)');
-					$insert->execute(array_merge(array('success' => null), $where, $data));
+					if (!isset($insert)) $insert = $db->prepare('INSERT INTO results (branch,script,suite,test,success,first_failed,failed,details,updated,time,protocol) VALUES (:branch,:script,:suite,:test,:success,:first_failed,:failed,:details,:updated,:time,:protocol)');
+					$insert->execute($bind=array_merge(array('success' => null), $where, $data));
 					$inserted++;
 				}
 			}
@@ -825,7 +903,7 @@ function setup_db($_db_path)
 			label varchar(128),
 			details varchar(255)
 		)');
-		$db->exec("INSERT INTO labels (id,label,details) VALUES(1,'1.0','***version***')");
+		$db->exec("INSERT INTO labels (id,label,details) VALUES(1,'1.1','***version***')");
 		$db->exec('CREATE TABLE IF NOT EXISTS results (
 			branch integer,
 			script integer,
@@ -836,8 +914,21 @@ function setup_db($_db_path)
 			failed integer DEFAULT NULL,
 			details text,
 			updated timestamp DEFAULT CURRENT_TIMESTAMP,
+			time real DEFAULT NULL,
+			protocol text,
 			PRIMARY KEY(branch,script,suite,test)
 		)');
+	}
+	// update schema, if necessary
+	switch($db->query('SELECT label FROM labels WHERE id=1')->fetchColumn())
+	{
+		case '1.0':
+			$db->exec('ALTER TABLE results ADD COLUMN time real DEFAULT NULL');
+			// fall through
+		case '1.1':
+			$db->exec('ALTER TABLE results ADD COLUMN protocol text');
+			// update version
+			$db->exec("UPDATE labels SET label='1.2' WHERE id=1");
 	}
 	//error_log('schema_version='.$db->query('SELECT label FROM labels WHERE id=1')->fetchColumn());
 

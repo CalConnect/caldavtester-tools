@@ -56,13 +56,13 @@ table.details {
 td.spinner {
 	background-image: url(images/spinner.gif);
 	background-repeat: no-repeat;
-	background-position: top center;
+	background-position: 3px 8px;
 	min-height: 20px;
 }
 td.run {
 	background-image: url(images/run.png);
 	background-repeat: no-repeat;
-	background-position: 5px 5px;
+	background-position: 5px 10px;
 	background-size: 12px;
 	cursor: pointer;
 }
@@ -75,4 +75,7 @@ td.script > a, td.revision > a {
 }
 td.script > a:hover, td.revision > a:hover {
 	text-decoration: underline;
+}
+td.updated {
+	white-space: nowrap;
 }
