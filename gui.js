@@ -12,7 +12,7 @@ jQuery().ready(function()
 {
 	var commit_url = jQuery('table.results').attr('data-commit-url');
 
-	function update_result(_data, output, spinner, tr)
+	function update_result(_data, output, spinner, tr, no_click)
 	{
 		output.html(_data);
 		//tr[0].scrollIntoView();
@@ -29,18 +29,22 @@ jQuery().ready(function()
 		}
 		spinner.removeClass('spinner');
 		spinner.addClass('run')
-			.attr('title', 'rerun script')
-			.click(function(_ev)
-		{
-			spinner.removeClass('run')
-				.attr('title', '')
-				.addClass('spinner');
+			.attr('title', 'rerun script');
 
-			jQuery.ajax(location.href+'?run='+encodeURIComponent(tr[0].id)).done(function(_data)
+		if (!no_click)
+		{
+			spinner.click(function(_ev)
 			{
-				update_result(_data, output, spinner, tr);
+				spinner.removeClass('run')
+					.attr('title', '')
+					.addClass('spinner');
+
+				jQuery.ajax(location.href+'?run='+encodeURIComponent(tr[0].id)).done(function(_data)
+				{
+					update_result(_data, output, spinner, tr, true);	// dont install click handler again
+				});
 			});
-		});
+		}
 		// update updated time in tr above
 		var etag = output.find('table.details').attr('data-etag');
 		tr.find('td.updated').text(etag.substr(0, 16));
