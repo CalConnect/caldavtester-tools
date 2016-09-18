@@ -11,7 +11,7 @@ Wrapper allowing to record and aggregate results of CalDAVTester:
 * test-results can be separately recorded by specifying a --branch=<branch> option
 * JSON-dumps generated via testcaldav.py --observer jsondump can be imported
 * lists features enabled in serverinfo.xml and available test scripts by required features
-* future plans include a WebGUI to display aggregate results and drill down to individual test-failures
+* WebGUI to display aggregate results, run test-scripts and drill down to individual test-failures
 ```
 Usage: php caldavtests.php
 --results [--branch=<branch> (default 'trunk')]
@@ -52,5 +52,3 @@ php caldavtester-tools/caldavtests.php --gui # launch WebGUI at http://localhost
 ### ToDo
 * allow to ignore single test results incl. a comment why
 * import/export tests-to-ignore data
-* run tests from gui
-* get request/response into jsonobserver
