@@ -493,11 +493,12 @@ ORDER BY script,suite,test');
 		if ($html)
 		{
 			echo "<table class='details' data-etag='".htmlspecialchars($etag)."'>\n";
-			echo "<tr class='header'><th class='expandAll'></th><th>Script</th><th>Suite</th><th>Test</th><th>Branch</th><th>Revision</th><th>First failed</th><th>Time</th></tr>\n";
+			echo "<tr class='header'><th class='expandAll'></th><th>Script</th><th>Suite</th><th>Test</th><th>Branch</th>".
+				"<th>Last success</th><th>Failed</th><th>First failed</th><th>Time</th></tr>\n";
 		}
 		else
 		{
-			echo "Script\t\t\tSuite\t\t\tTest\tBranch\tRevision\tFirst failed\tTime\n\n";
+			echo "Script\t\t\tSuite\t\t\tTest\tBranch\tLast success\tFailed\tFirst failed\tTime\n\n";
 		}
 		foreach($select as $result)
 		{
@@ -508,13 +509,13 @@ ORDER BY script,suite,test');
 				if (!empty($result['details'])) echo "$result[details]\n";
 				continue;
 			}
-			if (!empty($result['success']))
-			{
-				echo '<tr class="green">';
-			}
-			elseif (!empty($result['failed']))
+			if (!empty($result['failed']))
 			{
 				echo '<tr class="red">';
+			}
+			elseif (!empty($result['success']))
+			{
+				echo '<tr class="green">';
 			}
 			else
 			{
@@ -532,9 +533,9 @@ ORDER BY script,suite,test');
 				"</td><td>".htmlspecialchars($result['suite_label']).
 				"</td><td>".htmlspecialchars($result['test']).
 				"</td><td>".htmlspecialchars($result['branch_label']).
-				"</td><td class='revision'>".htmlspecialchars(!empty($result['success']) ? $result['success_revision'] : $result['failed_revision']).
-				(empty($result['first_failed_revision']) ? "</td><td>" :
-					"</td><td class='revision'>".htmlspecialchars($result['first_failed_revision'])).
+				"</td><td class='revision'>".htmlspecialchars($result['success_revision']).
+				"</td><td class='revision'>".htmlspecialchars($result['failed_revision']).
+				"</td><td class='revision'>".htmlspecialchars($result['first_failed_revision']).
 				"</td><td title='".htmlspecialchars($result['updated'])."'>".htmlspecialchars($result['time']).
 				"</td></tr>\n";
 
@@ -722,7 +723,7 @@ function import($_branch, $_revision, $_file)
 				if (!$test['result'])	// 0=success
 				{
 					$data['success'] = $revision;
-					$data['failed'] = $data['first_failed'] = $data['details'] = null;
+					$data['failed'] = $data['first_failed'] = null;
 					$succieded++;
 				}
 				elseif ($test['result'] == 3)	// 3=ignored, eg. missing feature
