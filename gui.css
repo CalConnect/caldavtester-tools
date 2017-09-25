@@ -32,7 +32,7 @@ tr.ignored {
 td {
 	padding-left: 5px;
 }
-td.percent, td.success, td.failed {
+td.percent, td.success, td.failed, td.time {
 	text-align: right;
 	padding-right: 10px;
 }
@@ -57,6 +57,7 @@ td.spinner {
 	background-image: url(images/spinner.gif);
 	background-repeat: no-repeat;
 	background-position: 3px 8px;
+	line-height: 28px;
 }
 td.run {
 	background-image: url(images/run.png);
@@ -67,7 +68,6 @@ td.run {
 }
 td.output {
 	white-space: pre-wrap;
-	line-height: 28px;
 }
 td.script > a, td.revision > a {
 	text-decoration: none;

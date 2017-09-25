@@ -253,14 +253,14 @@ function display_results($branch, $html=false)
 
 	if (!$html)
 	{
-		echo "Percent\tSuccess\tFailed\tScript\t(Features)\tFile\tUpdated\n";
+		echo "Percent\tSuccess\tFailed\tScript\t(Features)\tFile\tUpdated\tTime\n";
 	}
 	else
 	{
 		$etag = check_send_etag($branch);
 		html_header();
 		echo "<table class='results' data-commit-url='".htmlspecialchars($commit_url)."' data-etag='".htmlspecialchars($etag)."'>\n";
-		echo "<tr class='header'><th></th><th>Percent</th><th>Success</th><th>Failed</th><th>Script (Features)</th><th>File</th><th>Updated</th></tr>\n";
+		echo "<tr class='header'><th></th><th>Percent</th><th>Success</th><th>Failed</th><th>Script (Features)</th><th>File</th><th>Updated</th><th>Time</th></tr>\n";
 	}
 	foreach(get_script_results($branch) as $script)
 	{
@@ -273,10 +273,12 @@ function display_results($branch, $html=false)
 		}
 		if ($script['ignore-all']) $script['require-feature'][] = 'ignore-all';
 
+		$script['time'] = isset($script['time']) ? number_format($script['time'], 2, '.', '') : '';
+
 		if (!$html)
 		{
 			echo "$script[percent]\t$script[success]\t$script[failed]\t$script[description] (".
-				implode(', ', $script['require-feature']).")\t$script[name]\t$script[updated]\n";
+				implode(', ', $script['require-feature']).")\t$script[name]\t$script[updated]\t$script[time]\n";
 			continue;
 		}
 		// todo html
@@ -297,6 +299,7 @@ function display_results($branch, $html=false)
 				($script['require-feature'] ? ' ('.htmlspecialchars(implode(', ', $script['require-feature'])).')' : '').
 			"</td><td class='script'>".htmlspecialchars($script['name']).
 			"</td><td class='updated'>".htmlspecialchars(substr($script['updated'], 0, -3)).
+			"</td><td class='time'>".htmlspecialchars($script['time']).
 			"</td><tr>\n";
 	}
 	if ($html)
@@ -502,7 +505,7 @@ ORDER BY script,suite,test');
 		}
 		foreach($select as $result)
 		{
-			$result['time'] = number_format($result['time'], 2);
+			$result['time'] = isset($result['time']) ? number_format($result['time'], 2, '.', '') : '';
 			if (!$html)
 			{
 				echo "\n$result[script_label]\t$result[suite_label]\t$result[test]\t$result[branch_label]\t$result[success_revision]\t$result[failed_revision]\t$result[first_failed_revision]\t$result[time]\n";
@@ -536,7 +539,7 @@ ORDER BY script,suite,test');
 				"</td><td class='revision'>".htmlspecialchars($result['success_revision']).
 				"</td><td class='revision'>".htmlspecialchars($result['failed_revision']).
 				"</td><td class='revision'>".htmlspecialchars($result['first_failed_revision']).
-				"</td><td title='".htmlspecialchars($result['updated'])."'>".htmlspecialchars($result['time']).
+				"</td><td class='time' title='".htmlspecialchars($result['updated'])."'>".htmlspecialchars($result['time']).
 				"</td></tr>\n";
 
 			if (!empty($result['details']) || !empty($result['protocol']))
