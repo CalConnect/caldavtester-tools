@@ -165,6 +165,13 @@ elseif (!empty($_REQUEST['run']))
 	display_result_details(!empty($_REQUEST['branch']) ? $_REQUEST['branch'] : $branch,
 		$_REQUEST['run'], true);
 }
+elseif (!empty($_REQUEST['update']) && isset($_REQUEST['notes']))
+{
+	if (preg_match('/^\d+-\d+-\d+-\d+$/', $_REQUEST['update']))
+	{
+		update($_REQUEST['update'], 'notes', $_REQUEST['notes']);
+	}
+}
 else
 {
 	display_results($branch, true);	// true = return html
@@ -497,7 +504,7 @@ ORDER BY script,suite,test');
 		{
 			echo "<table class='details' data-etag='".htmlspecialchars($etag)."'>\n";
 			echo "<tr class='header'><th class='expandAll'></th><th>Script</th><th>Suite</th><th>Test</th><th>Branch</th>".
-				"<th>Last success</th><th>Failed</th><th>First failed</th><th>Time</th></tr>\n";
+				"<th>Last success</th><th>Failed</th><th>First failed</th><th>Time</th><th title='Notes' class='notes'>N</th></tr>\n";
 		}
 		else
 		{
@@ -532,6 +539,7 @@ ORDER BY script,suite,test');
 			{
 				echo '<td>';
 			}
+
 			echo "</td><td>".htmlspecialchars($result['script_label']).
 				"</td><td>".htmlspecialchars($result['suite_label']).
 				"</td><td>".htmlspecialchars($result['test']).
@@ -540,12 +548,16 @@ ORDER BY script,suite,test');
 				"</td><td class='revision'>".htmlspecialchars($result['failed_revision']).
 				"</td><td class='revision'>".htmlspecialchars($result['first_failed_revision']).
 				"</td><td class='time' title='".htmlspecialchars($result['updated'])."'>".htmlspecialchars($result['time']).
+				"</td><td class='".(empty($result['notes']) ? 'noNotes' : 'haveNotes')."'>".
 				"</td></tr>\n";
 
 			if (!empty($result['details']) || !empty($result['protocol']))
 			{
-				echo '<tr style="display:none" class="details"><td></td><td colspan="6" class="output">'.htmlspecialchars($result['details']).htmlspecialchars($result['protocol'])."</td></tr>\n";
+				echo '<tr style="display:none" class="details"><td></td><td colspan="8" class="output">'.htmlspecialchars($result['details']).htmlspecialchars($result['protocol'])."</td></tr>\n";
 			}
+			echo '<tr style="display:none" class="notes" id="'.htmlspecialchars($result['branch'].'-'.$result['script'].'-'.$result['suite'].'-'.$result['test']).
+				'"><td/><td colspan="7"><textarea class="notes">'.htmlspecialchars($result['notes'])."</textarea></td>".
+				"<td colspan='2' class='updateNotes'><button>Update</button></tr>\n";
 		}
 	}
 }
@@ -763,6 +775,32 @@ function import($_branch, $_revision, $_file)
 }
 
 /**
+ * Update notes or other fields of given result
+ *
+ * @global PDO $db
+ * @param string $ids branch-script-suite-test
+ * @param string $name name of field/column
+ * @param string $notes
+ */
+function update($ids, $name, $value)
+{
+	global $db;
+	static $update=null;
+
+	if (!isset($update)) $update = $db->prepare('UPDATE results SET notes=:notes WHERE branch=:branch AND script=:script AND suite=:suite AND test=:test');
+
+	list($branch, $script, $suite, $test) = explode('-', $ids);
+	$update->execute(array(
+		'branch' => $branch,
+		'script' => $script,
+		'suite'  => $suite,
+		'test'   => $test,
+		$name    => $value,
+	));
+	error_log(__METHOD__."('$ids', '$name', '$value')");
+}
+
+/**
  * Get all available scripts incl. required features
  *
  * @return array script-name (relativ to $caldavtester_dir.'/'.$testspath) => array of required features pairs
@@ -907,7 +945,7 @@ function setup_db($_db_path)
 			label varchar(128),
 			details varchar(255)
 		)');
-		$db->exec("INSERT INTO labels (id,label,details) VALUES(1,'1.1','***version***')");
+		$db->exec("INSERT INTO labels (id,label,details) VALUES(1,'1.3','***version***')");
 		$db->exec('CREATE TABLE IF NOT EXISTS results (
 			branch integer,
 			script integer,
@@ -920,6 +958,7 @@ function setup_db($_db_path)
 			updated timestamp DEFAULT CURRENT_TIMESTAMP,
 			time real DEFAULT NULL,
 			protocol text,
+			notes text,
 			PRIMARY KEY(branch,script,suite,test)
 		)');
 	}
@@ -931,8 +970,11 @@ function setup_db($_db_path)
 			// fall through
 		case '1.1':
 			$db->exec('ALTER TABLE results ADD COLUMN protocol text');
+			// fall through
+		case '1.2':
+			$db->exec('ALTER TABLE results ADD COLUMN notes text');
 			// update version
-			$db->exec("UPDATE labels SET label='1.2' WHERE id=1");
+			$db->exec("UPDATE labels SET label='1.3' WHERE id=1");
 	}
 	//error_log('schema_version='.$db->query('SELECT label FROM labels WHERE id=1')->fetchColumn());
 

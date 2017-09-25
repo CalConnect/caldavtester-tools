@@ -109,6 +109,40 @@ jQuery().ready(function()
 				.toggleClass('collapseAll')
 				.attr('title', jQuery(this).hasClass('expandAll') ? 'expand all' : 'collapse all');
 		});
+		// expand/collapse a notes-line
+		jQuery('table.results').on('click', 'td.noNotes,td.haveNotes', function(_ev)
+		{
+			var tr = jQuery(this.parentElement);
+			var notes = tr.nextAll('tr.notes').first();
+			if (!notes.is(':visible'))
+			{
+				notes.show();
+			}
+			else
+			{
+				notes.hide();
+			}
+		});
+		// update notes
+		jQuery('table.results').on('click', 'td.updateNotes > button', function(_ev)
+		{
+			var tr = jQuery(this).parents('tr.notes');
+			var notes = tr.find('textarea.notes').val();
+			jQuery.ajax({
+				url: location.href+'?update='+encodeURIComponent(tr[0].id),
+				method: 'POST',
+				data: {
+					notes: notes
+				}
+			}).done(function(_data)
+			{
+				if (_data) alert(_data);
+				// update haveNotes indicator
+				tr.prev('tr.green,tr.yellow,tr.red').find('td.noNotes,td.haveNotes')
+					.toggleClass('noNotes', notes === '')
+					.toggleClass('haveNotes', notes !== '');
+			});
+		});
 		jQuery('td.expand').attr('title', 'expand');
 		// allow to fetch scripts
 		jQuery('td.script').wrapInner(function()
