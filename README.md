@@ -12,6 +12,8 @@ Wrapper allowing to record and aggregate results of CalDAVTester:
 * JSON-dumps generated via testcaldav.py --observer jsondump can be imported
 * lists features enabled in serverinfo.xml and available test scripts by required features
 * WebGUI to display aggregate results, run test-scripts and drill down to individual test-failures
+<img width="1380" alt="screenshot" src="https://user-images.githubusercontent.com/972180/30808311-e68caf7c-a1fd-11e7-8702-b73f0d7479f6.png">
+
 ```
 Usage: php caldavtests.php
 --results [--branch=<branch> (default 'trunk')]
@@ -39,10 +41,10 @@ Usage: php caldavtests.php
   ```
 ### Installation instructions
 ```
-git clone git@github.com:apple/ccs-caldavtester.git CalDAVTester
+git clone git@github.com:CalConnect/caldavtester.git CalDAVTester
 cd CalDAVTester
 git clone git@github.com:apple/ccs-pycalendar.git pycalendar
-git clone git@github.com:calconect/caldavtester-tools
+git clone git@github.com:CalConect/caldavtester-tools
 ln -s scripts/server/serverinfo.xml # symlink (or copy) serverinfo.xml to caldavtester-tools default location
 # edit serverinfo.xml: eg. url of your server, features, etc
 php caldavtester-tools/caldavtests.php --run # run/record tests for first time
