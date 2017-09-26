@@ -695,7 +695,7 @@ function import($_branch, $_revision, $_file)
 	$revision = is_numeric($_revision) ? $_revision : label2id($_revision, '***revision***');
 
 	$updated = $inserted = $succieded = $failed = $ignored = $new_failures = 0;
-	$insert = $update = $select = null;
+	$insert = $update = $select = $update_suite = null;
 	foreach($scripts as $script)
 	{
 		// strip $testspath
@@ -705,7 +705,38 @@ function import($_branch, $_revision, $_file)
 		foreach($script['tests'] as $suite)
 		{
 			$suite_id = label2id($suite['name'], '***suite***');
-			if (!$suite['tests']) echo "$script[name] ($script_id)\t$suite[name] ($suite_id)\t$suite[result]\n";
+			echo "$script[name] ($script_id)\t$suite[name] ($suite_id)\t$suite[result]\n";
+			// whole suite is disabled --> update existing tests as disabled
+			if (!$suite['tests'] && !empty($suite['details']))
+			{
+				echo $suite['details']."\n";
+				if (!isset($update_suite)) $update_suite = $db->prepare('UPDATE results SET success=null,first_failed=null,failed=null,details=:details,updated=:updated,time=:time,protocol=null WHERE branch=:branch AND script=:script AND suite=:suite');
+				if (!$update_suite->execute($bind=array(
+					'branch' => $branch,
+					'script' => $script_id,
+					'suite'  => $suite_id,
+					'details' => $suite['details'],
+					'updated' => empty($suite['time']) ? date('Y-m-d H:i:s') : date('Y-m-d H:i:s', $suite['time']),
+					'time'   => 0,
+				)))
+				{
+					error_log(__LINE__.': Update failed: '.implode(' ', $update->errorInfo()).': '.json_encode($bind));
+				}
+				elseif (($rc=$update_suite->rowCount()))
+				{
+					$updated += $rc;
+					$ignored += $rc;
+				}
+				else	// add a fake test=1 to record disabled suite
+				{
+					$suite['tests'][] = array(
+						'details' => $suite['details'],	// eg. "Missing feature: ..."
+						'name' => "1",
+						'time' => $suite['time'],
+						'result' => $suite['result'],
+					);
+				}
+			}
 			foreach($suite['tests'] as $test)
 			{
 				echo "$script[name] ($script_id)\t$suite[name] ($suite_id)\t$test[name]\t$test[result]\n";
