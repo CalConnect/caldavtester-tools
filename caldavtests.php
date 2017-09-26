@@ -164,6 +164,7 @@ elseif (!empty($_REQUEST['run']))
 	$output = array();
 	exec($cmd='php ./caldavtests.php --serverinfo '.escapeshellarg($serverinfo).
 		(!empty($options['testeroptions']) ? ' --testeroptions '.$options['testeroptions'] : '').
+		(!empty($options['git-sources']) ? ' --git-sources '.escapeshellarg($options['git-sources']) : '').
 		(!empty($_REQUEST['branch']) ? escapeshellarg('--branch='.$_REQUEST['branch']).' ' : '').
 		escapeshellarg('--run='.$_REQUEST['run']), $output, $ret);
 	error_log($cmd.' returned '.$ret);
