@@ -759,14 +759,26 @@ function import($_branch, $_revision, $_file)
 				if ($result)
 				{
 					if (!isset($update)) $update = $db->prepare('UPDATE results SET success=:success,first_failed=:first_failed,failed=:failed,details=:details,updated=:updated,time=:time,protocol=:protocol WHERE branch=:branch AND script=:script AND suite=:suite AND test=:test');
-					$update->execute(array_merge($result, $data));
-					$updated++;
+					if (!$update->execute($bind=array_merge(array('first_failed' => $result['first_failed']), $where, $data)))
+					{
+						error_log(__LINE__.': Update failed: '.implode(' ', $update->errorInfo()).': '.json_encode($bind));
+					}
+					else
+					{
+						$updated++;
+					}
 				}
 				else
 				{
 					if (!isset($insert)) $insert = $db->prepare('INSERT INTO results (branch,script,suite,test,success,first_failed,failed,details,updated,time,protocol) VALUES (:branch,:script,:suite,:test,:success,:first_failed,:failed,:details,:updated,:time,:protocol)');
-					$insert->execute($bind=array_merge(array('success' => null), $where, $data));
-					$inserted++;
+					if (!$insert->execute($bind=array_merge(array('success' => null), $where, $data)))
+					{
+						error_log(__LINE__.': Insert failed: '.implode($insert->errorInfo()).': '.json_encode($bind));
+					}
+					else
+					{
+						$inserted++;
+					}
 				}
 			}
 		}
