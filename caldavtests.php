@@ -50,6 +50,7 @@ if (php_sapi_name() == 'cli')
 		'result-details::',	// list full results (optional of given script)
 		'git-sources::',	// path to git sources to automatic determine branch&revision
 		'serverinfo::',	// path to serverinfo.xml
+		'testeroptions::',	// extra options to pass to caldavtester
 		'gui::',
 	));
 	if (isset($options['h']) || isset($options['help']))
@@ -64,6 +65,10 @@ if (php_sapi_name() == 'cli')
 		}
 		$serverinfo = realpath($options['serverinfo']);
 		$caldavtester .= ' -s '.escapeshellarg($serverinfo);
+	}
+	if (isset($options['testeroptions']))
+	{
+		$caldavtester .= ' '.$options['testeroptions'];
 	}
 	if (isset($options['git-sources']))
 	{
@@ -157,7 +162,8 @@ elseif (!empty($_REQUEST['result']))
 elseif (!empty($_REQUEST['run']))
 {
 	$output = array();
-	exec($cmd='php ./caldavtests.php '.
+	exec($cmd='php ./caldavtests.php --serverinfo '.escapeshellarg($serverinfo).
+		(!empty($options['testeroptions']) ? ' --testeroptions '.$options['testeroptions'] : '').
 		(!empty($_REQUEST['branch']) ? escapeshellarg('--branch='.$_REQUEST['branch']).' ' : '').
 		escapeshellarg('--run='.$_REQUEST['run']), $output, $ret);
 	error_log($cmd.' returned '.$ret);
@@ -239,6 +245,8 @@ function usage($exit_code=0, $error_msg='')
 	echo "  List features incl. if they are enabled in serverinfo\n";
 	echo "--serverinfo\n";
 	echo "  Path to serverinfo.xml to use, default '$serverinfo'\n";
+	echo "--testeroptions <some-options>\n";
+	echo "  Pass arbitrary options to caldavtester.py, eg. '--ssl'\n";
 	echo "--git-sources\n";
 	echo "  Path to sources to use Git to automatic determine branch&revision, default '$git_sources'\n";
 	echo "--gui[=[<bind-addr> (default localhost)][:port (default 8080)]]\n";
@@ -347,14 +355,12 @@ function html_header()
 function run($branch, $revision, $what='default')
 {
 	global $caldavtester;
-	global $testeroptions;
-	global $serverinfo;
 
 	if ($what === false) $what = 'default';	// default of optional argument
 
 	foreach(scripts($what, true) as $script)
 	{
-		$cmd = $caldavtester.' -s '.$serverinfo.' '.escapeshellarg($script);
+		$cmd = $caldavtester.' '.escapeshellarg($script);
 		error_log($cmd);
 		if (($fp = popen($cmd, 'r')))
 		{
@@ -905,7 +911,7 @@ function get_features()
 
 	if (!($xml = file_get_contents($serverinfo)))
 	{
-		throw new execption("Serverinfo '$serverinfo' NOT found!");
+		throw new Exception("Serverinfo '$serverinfo' NOT found!");
 	}
 	$matches = null;
 	preg_match_all('|(<!--\s*)?<feature>([^<]+)</feature>\s*(<!--\s*(.*)\s*-->)?|m', $xml, $matches, PREG_SET_ORDER);

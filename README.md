@@ -32,6 +32,8 @@ Usage: php caldavtests.php
   List features incl. if they are enabled in serverinfo
 --serverinfo
   Path to serverinfo.xml to use, default './serverinfo.xml'
+--testeroptions <some-options>
+  Pass arbitrary options to caldavtester.py, eg. '--ssl'
 --git-sources
   Path to sources to use Git to automatic determine branch&revision
 --gui[=[<bind-addr> (default localhost)][:port (default 8080)]]
