@@ -329,7 +329,7 @@ function html_header()
 	}
 	else
 	{
-		echo "\t<script src='https://code.jquery.com/jquery-3.1.0.slim.min.js' integrity='sha256-cRpWjoSOw5KcyIOaZNo4i6fZ9tKPhYYb6i5T9RSVJG8=' crossorigin='anonymous'></script>\n";
+		echo "\t<script src='https://code.jquery.com/jquery-2.2.4.min.js' integrity='sha256-BbhdlvQf/xTY9gja0Dq3HiwQF8LaCRTXxZKRutelT44=' crossorigin='anonymous'></script>\n";
 	}
 	echo "\t<script src='gui.js'></script>\n";
 	echo "\t<link type='text/css' href='gui.css' rel='StyleSheet'/>\n";
