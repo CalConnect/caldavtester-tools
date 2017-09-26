@@ -63,6 +63,7 @@ if (php_sapi_name() == 'cli')
 			usage(5, "Specified serverinfo '$options[serverinfo]' not found!");
 		}
 		$serverinfo = realpath($options['serverinfo']);
+		$caldavtester .= ' -s '.escapeshellarg($serverinfo);
 	}
 	if (isset($options['git-sources']))
 	{
