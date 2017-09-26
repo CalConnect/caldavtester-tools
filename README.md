@@ -44,7 +44,7 @@ Usage: php caldavtests.php
 git clone git@github.com:CalConnect/caldavtester.git CalDAVTester
 cd CalDAVTester
 git clone git@github.com:apple/ccs-pycalendar.git pycalendar
-git clone git@github.com:CalConect/caldavtester-tools
+git clone git@github.com:CalConnect/caldavtester-tools
 ln -s scripts/server/serverinfo.xml # symlink (or copy) serverinfo.xml to caldavtester-tools default location
 # edit serverinfo.xml: eg. url of your server, features, etc
 php caldavtester-tools/caldavtests.php --run # run/record tests for first time
