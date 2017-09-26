@@ -346,12 +346,14 @@ function html_header()
 function run($branch, $revision, $what='default')
 {
 	global $caldavtester;
+	global $testeroptions;
+	global $serverinfo;
 
 	if ($what === false) $what = 'default';	// default of optional argument
 
 	foreach(scripts($what, true) as $script)
 	{
-		$cmd = $caldavtester.' '.escapeshellarg($script);
+		$cmd = $caldavtester.' -s '.$serverinfo.' '.escapeshellarg($script);
 		error_log($cmd);
 		if (($fp = popen($cmd, 'r')))
 		{
