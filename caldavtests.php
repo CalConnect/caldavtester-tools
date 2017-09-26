@@ -162,11 +162,11 @@ elseif (!empty($_REQUEST['result']))
 elseif (!empty($_REQUEST['run']))
 {
 	$output = array();
-	exec($cmd='php ./caldavtests.php --serverinfo '.escapeshellarg($serverinfo).
+	exec($cmd='php ./caldavtests.php '.escapeshellarg('--serverinfo='.$serverinfo).
 		(!empty($options['testeroptions']) ? ' --testeroptions '.$options['testeroptions'] : '').
-		(!empty($options['git-sources']) ? ' --git-sources '.escapeshellarg($options['git-sources']) : '').
-		(!empty($_REQUEST['branch']) ? escapeshellarg('--branch='.$_REQUEST['branch']).' ' : '').
-		escapeshellarg('--run='.$_REQUEST['run']), $output, $ret);
+		' '.(!empty($options['git-sources']) ? escapeshellarg('--git-sources '.$options['git-sources']) : '').
+		' '.(!empty($_REQUEST['branch']) ? escapeshellarg('--branch='.$_REQUEST['branch']).' ' : '').
+		' '.escapeshellarg('--run='.$_REQUEST['run']), $output, $ret);
 	error_log($cmd.' returned '.$ret);
 
 	// return results
@@ -244,11 +244,11 @@ function usage($exit_code=0, $error_msg='')
 	echo "  List scripts incl. required features for given script, feature, default (enabled and not ignore-all taged) or all\n";
 	echo "--features\n";
 	echo "  List features incl. if they are enabled in serverinfo\n";
-	echo "--serverinfo\n";
+	echo "--serverinfo=<path>\n";
 	echo "  Path to serverinfo.xml to use, default '$serverinfo'\n";
-	echo "--testeroptions <some-options>\n";
+	echo "--testeroptions=<some-options>\n";
 	echo "  Pass arbitrary options to caldavtester.py, eg. '--ssl'\n";
-	echo "--git-sources\n";
+	echo "--git-sources=<path>\n";
 	echo "  Path to sources to use Git to automatic determine branch&revision, default '$git_sources'\n";
 	echo "--gui[=[<bind-addr> (default localhost)][:port (default 8080)]]\n";
 	echo "  Run WebGUI: point your browser at given address, default http://localhost:8080/\n";
