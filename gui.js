@@ -138,7 +138,7 @@ jQuery().ready(function()
 			{
 				if (_data) alert(_data);
 				// update haveNotes indicator
-				tr.prev('tr.green,tr.yellow,tr.red').find('td.noNotes,td.haveNotes')
+				tr.prevAll('tr.green,tr.yellow,tr.red').first().find('td.noNotes,td.haveNotes')
 					.toggleClass('noNotes', notes === '')
 					.toggleClass('haveNotes', notes !== '');
 			});

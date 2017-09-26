@@ -92,7 +92,7 @@ td.haveNotes {
 	font-weight: bold;
 }
 td.noNotes {
-	font-size: 80%;
+	color: silver;
 }
 textarea.notes {
 	width: 100%;
