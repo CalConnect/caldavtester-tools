@@ -48,6 +48,27 @@ jQuery().ready(function()
 		// update updated time in tr above
 		var etag = output.find('table.details').attr('data-etag');
 		tr.find('td.updated').text(etag.substr(0, 16));
+		tr.find('td.time').text((etag.match(/\d+\.\d{2}/)||[''])[0]);
+		// update color, percent, success and failed in tr above
+		var failed=0, success=0, time=0.0;
+		output.find('tr.red,tr.yellow,tr.green').each(function(_key, _tr) {
+			var revisions = jQuery(_tr).find('td.revision');	// last-success, failed, first-failed
+			console.log(revisions);
+			if (revisions.eq(1).text())
+			{
+				++failed;
+			}
+			else if (revisions.text())
+			{
+				++success;
+			}
+		});
+		tr.find('td.success').text(success);
+		tr.find('td.failed').text(failed);
+		var percent = Math.round(1000.0 * success / (success+failed))/10.0;
+		tr.find('td.percent').text(percent);
+		tr.removeClass('red').removeClass('green').removeClass('ignored');
+		tr.addClass(percent >= 100.0 ? 'green' : (percent < 50.0 ? 'red' : 'yellow'));
 	}
 
 	function prepare_page()
