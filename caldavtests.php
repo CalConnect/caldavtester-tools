@@ -789,6 +789,7 @@ function import($_branch, $_revision, $_file)
 				}
 				else	// 1=failed or 2=error (internal error in tester or test)
 				{
+					$data['success'] = null;
 					$data['failed'] = $revision;
 					if (!$result || !$result['first_failed'])
 					{
