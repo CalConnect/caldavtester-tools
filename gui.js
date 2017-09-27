@@ -65,9 +65,9 @@ jQuery().ready(function()
 		});
 		tr.find('td.success').text(success);
 		tr.find('td.failed').text(failed);
-		var percent = Math.round(1000.0 * success / (success+failed))/10.0;
-		tr.find('td.percent').text(percent);
-		tr.removeClass('red').removeClass('green').removeClass('ignored');
+		var percent = 100.0 * success / (success+failed);
+		tr.find('td.percent').text(percent.toFixed(1));
+		tr.removeClass('red').removeClass('yellow').removeClass('green');
 		tr.addClass(percent >= 100.0 ? 'green' : (percent < 50.0 ? 'red' : 'yellow'));
 	}
 
