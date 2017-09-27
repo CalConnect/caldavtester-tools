@@ -523,9 +523,13 @@ ORDER BY script,suite,test');
 		foreach($select as $result)
 		{
 			$result['time'] = isset($result['time']) ? number_format($result['time'], 2, '.', '') : '';
+			$description = get_test_description($result['script_label'], $result['suite_label'], $result['test']);
 			if (!$html)
 			{
-				echo "\n$result[script_label]\t$result[suite_label]\t$result[test]\t$result[branch_label]\t$result[success_revision]\t$result[failed_revision]\t$result[first_failed_revision]\t$result[time]\n";
+				echo "\n$result[script_label]\t$result[suite_label]\t".
+					$result['test'].(!empty($description) ? ': '.$description : '')."\t".
+					"$result[branch_label]\t$result[success_revision]\t".
+					"$result[failed_revision]\t$result[first_failed_revision]\t$result[time]\n";
 				if (!empty($result['details'])) echo "$result[details]\n";
 				continue;
 			}
@@ -552,7 +556,7 @@ ORDER BY script,suite,test');
 
 			echo "</td><td>".htmlspecialchars($result['script_label']).
 				"</td><td>".htmlspecialchars($result['suite_label']).
-				"</td><td>".htmlspecialchars($result['test']).
+				"</td><td>".htmlspecialchars($result['test']).(!empty($description) ? ': '.htmlspecialchars($description) : '').
 				"</td><td>".htmlspecialchars($result['branch_label']).
 				"</td><td class='revision'>".htmlspecialchars($result['success_revision']).
 				"</td><td class='revision'>".htmlspecialchars($result['failed_revision']).
@@ -881,6 +885,45 @@ function get_scripts()
 		);
 	}
 	return $scripts;
+}
+
+/**
+ * Fetch description of a test
+ *
+ * @param string $_script
+ * @param string $_suite
+ * @param string $_test
+ * @return string description or null for script, suite or test not found
+ */
+function get_test_description($_script, $_suite, $_test)
+{
+	global $caldavtester_dir, $testspath;
+	// a little bit of caching
+	static $script=null, $xml=null;
+	if ($script !== $_script)
+	{
+		$xml = simplexml_load_file($caldavtester_dir.'/'.$testspath.$_script);
+		$script = $_script;
+	}
+	if ($xml)
+	{
+		foreach($xml->{'test-suite'} as $suite)
+		{
+			if ((string)$suite['name'] === $_suite)
+			{
+				foreach($suite->test as $test)
+				{
+					if ((string)$test['name'] === $_test)
+					{
+						return $test->description;
+					}
+				}
+				break;	// no need to search further
+			}
+		}
+	}
+	// script, suite or test not found
+	return null;
 }
 
 /**
