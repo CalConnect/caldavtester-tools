@@ -11,7 +11,9 @@ Wrapper allowing to record and aggregate results of CalDAVTester:
 * test-results can be separately recorded by specifying a --branch=<branch> option
 * JSON-dumps generated via testcaldav.py --observer jsondump can be imported
 * lists features enabled in serverinfo.xml and available test scripts by required features
-* WebGUI to display aggregate results, run test-scripts and drill down to individual test-failures
+* WebGUI to display aggregate results and drill down to individual test-failures
+* WebGUI allows to (re-)run test incl. fetching request/response data of failed test or all by shift click
+* WebGUI allows to record notes to every test
 <img width="1380" alt="screenshot" src="https://user-images.githubusercontent.com/972180/30808311-e68caf7c-a1fd-11e7-8702-b73f0d7479f6.png">
 
 ```
