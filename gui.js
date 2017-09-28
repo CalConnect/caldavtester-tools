@@ -39,7 +39,8 @@ jQuery().ready(function()
 					.attr('title', '')
 					.addClass('spinner');
 
-				jQuery.ajax(location.href+'?run='+encodeURIComponent(tr[0].id)).done(function(_data)
+				var all = _ev.shiftKey ? '&all=1' : '';
+				jQuery.ajax(location.href+'?run='+encodeURIComponent(tr[0].id)+all).done(function(_data)
 				{
 					update_result(_data, output, spinner, tr, true);	// dont install click handler again
 				});

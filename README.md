@@ -20,6 +20,9 @@ Usage: php caldavtests.php
   Aggregate results by script incl. number of tests success/failure/percentage
 --run[=(<script-name>|<feature>|default(default)|all)] [--branch=<branch> (default 'master')] --revision <revision>
   Run tests of given script, all scripts requiring given feature, default (enabled and not ignore-all taged) or all
+--all
+  Record all requests and responses, default only record them for failed tests
+  Tip: use shift click in GUI to switch --all on for a single run
 --result-details[=(<script-name>|<feature>|default|all(default)] [--branch=<branch> (default 'master')]
   List result details incl. test success/failure/logs
 --delete=(<script>|<feature>|all) [--branch=(<branch>|all) (default 'master')]

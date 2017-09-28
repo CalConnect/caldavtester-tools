@@ -52,6 +52,7 @@ if (php_sapi_name() == 'cli')
 		'serverinfo::',	// path to serverinfo.xml
 		'testeroptions::',	// extra options to pass to caldavtester
 		'gui::',
+		'all::',	// record all requests/responses, default only failed ones
 	));
 	if (isset($options['h']) || isset($options['help']))
 	{
@@ -117,7 +118,7 @@ if (php_sapi_name() == 'cli')
 	elseif (isset($options['run']))
 	{
 		if (empty($options['revision'])) usage(1, "Revision parameter --revision=<revision> is required!");
-		run($options['branch'], $options['revision'], $options['run']);
+		run($options['branch'], $options['revision'], $options['run'], isset($options['all']));
 	}
 	elseif (isset($options['gui']))
 	{
@@ -166,6 +167,7 @@ elseif (!empty($_REQUEST['run']))
 		(!empty($options['testeroptions']) ? ' --testeroptions '.$options['testeroptions'] : '').
 		' '.(!empty($options['git-sources']) ? escapeshellarg('--git-sources '.$options['git-sources']) : '').
 		' '.(!empty($_REQUEST['branch']) ? escapeshellarg('--branch='.$_REQUEST['branch']).' ' : '').
+		' '.(isset($options['all']) || !empty($_REQUEST['all']) ? '--all' : '').
 		' '.escapeshellarg('--run='.$_REQUEST['run']), $output, $ret);
 	error_log($cmd.' returned '.$ret);
 
@@ -234,6 +236,9 @@ function usage($exit_code=0, $error_msg='')
 	echo "  Aggregate results by script incl. number of tests success/failure/percentage\n";
 	echo "--run[=(<script-name>|<feature>|default(default)|all)] [--branch=<branch> (default '$branch')] [--revision=<revision> (default '$revision')]\n";
 	echo "  Run tests of given script, all scripts requiring given feature, default (enabled and not ignore-all taged) or all\n";
+	echo "--all\n";
+	echo "  Record all requests and responses, default only record them for failed tests\n";
+	echo "  Tip: use shift click in GUI to switch --all on for a single run\n";
 	echo "--result-details[=(<script-name>|<feature>|default|all(default)] [--branch=<branch> (default 'trunk')]\n";
 	echo "  List result details incl. test success/failure/logs\n";
 	echo "--delete=(<script>|<feature>|all) [--branch=(<branch>|all) (default '$branch')]\n";
@@ -352,16 +357,20 @@ function html_header()
  * @param string $branch
  * @param string $revision
  * @param string $what ='default'
+ * @param boolean $all =null
  */
-function run($branch, $revision, $what='default')
+function run($branch, $revision, $what='default', $all=null)
 {
 	global $caldavtester;
 
 	if ($what === false) $what = 'default';	// default of optional argument
 
+	$tester = $caldavtester;
+	if ($all) $tester = str_replace('--print-details-onfail', '--always-print-request --always-print-response', $caldavtester);
+
 	foreach(scripts($what, true) as $script)
 	{
-		$cmd = $caldavtester.' '.escapeshellarg($script);
+		$cmd = $tester.' '.escapeshellarg($script);
 		error_log($cmd);
 		if (($fp = popen($cmd, 'r')))
 		{
