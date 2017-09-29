@@ -311,7 +311,8 @@ function display_results($branch, $html=false)
 		else
 		{
 			echo "<tr id='".htmlspecialchars($script['name'])."' class='".
-				($script['percent']==100.0?'green':($script['percent'] < 50.0 ? 'red' : 'yellow'))."'>".
+				((string)$script['percent'] === '' ? 'ignored' :
+				($script['percent']==100.0?'green':($script['percent'] < 50.0 ? 'red' : 'yellow')))."'>".
 				"<td class='expand'></td>";
 		}
 		echo "<td class='percent'>".htmlspecialchars($script['percent']).
@@ -703,7 +704,7 @@ function import($_branch, $_revision, $_file)
 {
 	global $db, $testspath;
 
-	static $prefix = '[{"result": null, "tests":';
+	static $prefix = '[{"result": ';
 
 	$json = is_resource($_file) ? stream_get_contents($_file) : file_get_contents($_file);
 	if (substr($json, 0, strlen($prefix)) !== $prefix)
@@ -718,13 +719,44 @@ function import($_branch, $_revision, $_file)
 	$revision = is_numeric($_revision) ? $_revision : label2id($_revision, '***revision***');
 
 	$updated = $inserted = $succieded = $failed = $ignored = $new_failures = 0;
-	$insert = $update = $select = $update_suite = null;
+	$insert = $update = $select = $update_suite = $update_script = null;
 	foreach($scripts as $script)
 	{
 		// strip $testspath
 		if (strpos($script['name'], $testspath) === 0) $script['name'] = substr($script['name'], strlen($testspath));
 
 		$script_id = label2id($script['name'], $script['details']);
+
+		// whole script is disabled --> update existing tests as disabled
+		if (!$script['tests'] && !empty($script['details']))
+		{
+			echo $script['details']."\n";
+			if (!isset($update_script)) $update_script = $db->prepare('UPDATE results SET success=null,first_failed=null,failed=null,details=:details,updated=:updated,time=:time,protocol=null WHERE branch=:branch AND script=:script');
+			if (!$update_script->execute($bind=array(
+				'branch' => $branch,
+				'script' => $script_id,
+				'details' => $script['details'],
+				'updated' => empty($script['time']) ? date('Y-m-d H:i:s') : date('Y-m-d H:i:s', $script['time']),
+				'time'   => 0,
+			)))
+			{
+				error_log(__LINE__.': Update failed: '.implode(' ', $update->errorInfo()).': '.json_encode($bind));
+			}
+			elseif (($rc=$update_script->rowCount()))
+			{
+				$updated += $rc;
+				$ignored += $rc;
+			}
+			else	// add a fake suite "all suites" to record disabled suite
+			{
+				$script['tests'][] = array(
+					'details' => $script['details'],	// eg. "Missing feature: ..."
+					'name' => "all suites",
+					'time' => $script['time'],
+					'result' => $script['result'],
+				);
+			}
+		}
 		foreach($script['tests'] as $suite)
 		{
 			$suite_id = label2id($suite['name'], '***suite***');
