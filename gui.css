@@ -32,9 +32,12 @@ tr.ignored {
 td {
 	padding-left: 5px;
 }
-td.percent, td.success, td.failed, td.time {
+td.percent, td.success, td.failed, td.time, td.notes {
 	text-align: right;
 	padding-right: 10px;
+}
+th.notes, th.time {
+	text-align: center;
 }
 tr.footer {
 	text-align: left;
@@ -79,7 +82,7 @@ td.script > a:hover, td.revision > a:hover {
 td.updated {
 	white-space: nowrap;
 }
-th.notes, td.noNotes, td.haveNotes {
+th.notes, td.notes, td.noNotes, td.haveNotes {
 	width: 16px;
 }
 td.noNotes:before, td.haveNotes:before {

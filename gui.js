@@ -27,6 +27,11 @@ jQuery().ready(function()
 			output.find('td.collapse').attr('title', 'collapse');
 			output.find('th.expandAll').attr('title', 'expand all');
 		}
+		// allow to click on scripts-names to fetch them
+		output.find('td.script').wrapInner(function()
+		{
+			return '<a href="'+location.href+'?script='+encodeURIComponent(this.textContent)+'" target="_blank">';
+		});
 		spinner.removeClass('spinner');
 		spinner.addClass('run')
 			.attr('title', 'rerun script');
@@ -85,7 +90,7 @@ jQuery().ready(function()
 				{
 					var details = jQuery('<tr class="details">');
 					var spinner = jQuery('<td class="spinner">').appendTo(details);
-					var output = jQuery('<td colspan="7" class="output">&nbsp;</td>').appendTo(details);
+					var output = jQuery('<td colspan="8" class="output">&nbsp;</td>').appendTo(details);
 					tr.after(details);
 					jQuery.ajax(location.href+'?result='+encodeURIComponent(tr[0].id)).done(function(_data)
 					{
@@ -166,7 +171,7 @@ jQuery().ready(function()
 			});
 		});
 		jQuery('td.expand').attr('title', 'expand');
-		// allow to fetch scripts
+		// allow to click on scripts-names to fetch them
 		jQuery('td.script').wrapInner(function()
 		{
 			return '<a href="'+location.href+'?script='+encodeURIComponent(this.textContent)+'" target="_blank">';

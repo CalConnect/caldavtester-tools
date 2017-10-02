@@ -282,7 +282,7 @@ function display_results($branch, $html=false)
 		$etag = check_send_etag($branch);
 		html_header();
 		echo "<table class='results' data-commit-url='".htmlspecialchars($commit_url)."' data-etag='".htmlspecialchars($etag)."'>\n";
-		echo "<tr class='header'><th></th><th>Percent</th><th>Success</th><th>Failed</th><th>Script (Features)</th><th>File</th><th>Updated</th><th>Time</th></tr>\n";
+		echo "<tr class='header'><th></th><th>Percent</th><th>Success</th><th>Failed</th><th>Script (Features)</th><th>File</th><th>Updated</th><th class='time'>Time</th><th class='notes'>N</th></tr>\n";
 	}
 	foreach(get_script_results($branch) as $script)
 	{
@@ -300,7 +300,7 @@ function display_results($branch, $html=false)
 		if (!$html)
 		{
 			echo "$script[percent]\t$script[success]\t$script[failed]\t$script[description] (".
-				implode(', ', $script['require-feature']).")\t$script[name]\t$script[updated]\t$script[time]\n";
+				implode(', ', $script['require-feature']).")\t$script[name]\t$script[updated]\t$script[time]t$script[notes]\n";
 			continue;
 		}
 		// todo html
@@ -323,6 +323,7 @@ function display_results($branch, $html=false)
 			"</td><td class='script'>".htmlspecialchars($script['name']).
 			"</td><td class='updated'>".htmlspecialchars(substr($script['updated'], 0, -3)).
 			"</td><td class='time'>".htmlspecialchars($script['time']).
+			"</td><td class='notes'>".htmlspecialchars($script['notes']).
 			"</td><tr>\n";
 	}
 	if ($html)
@@ -564,7 +565,7 @@ ORDER BY script,suite,test');
 				echo '<td>';
 			}
 
-			echo "</td><td>".htmlspecialchars($result['script_label']).
+			echo "</td><td class='script'>".htmlspecialchars($result['script_label']).
 				"</td><td>".htmlspecialchars($result['suite_label']).
 				"</td><td>".htmlspecialchars($result['test']).(!empty($description) ? ': '.htmlspecialchars($description) : '').
 				"</td><td>".htmlspecialchars($result['branch_label']).
@@ -641,7 +642,7 @@ function get_script_results($branch)
 'SELECT script,scripts.details AS description,
 	scripts.label AS name,COUNT(success) AS success,COUNT(failed) AS failed,
 	ROUND(100.0*COUNT(success)/(COUNT(success)+COUNT(failed)),1) AS percent,
-	SUM(time) AS time,MAX(updated) AS updated
+	SUM(time) AS time,MAX(updated) AS updated,COUNT(notes != "") as notes
 FROM results
 JOIN labels AS scripts ON results.script=scripts.id
 JOIN labels AS suites ON results.suite=suites.id
@@ -658,7 +659,7 @@ ORDER BY percent DESC,description ASC');
 
 	// merge in features and calculate total
 	$scripts = get_scripts();
-	$success = $failed = 0;
+	$success = $failed = $notes = 0;
 	$results = array();
 	foreach($select as $script)
 	{
@@ -672,6 +673,7 @@ ORDER BY percent DESC,description ASC');
 		}
 		$success += $script['success'];
 		$failed  += $script['failed'];
+		$notes   += $script['notes'];
 		$results[$script['name']] = $script;
 	}
 	// add total to results
@@ -686,6 +688,7 @@ ORDER BY percent DESC,description ASC');
 			'ignore-all' => false,
 			'require-feature' => array(),
 			'updated' => '',
+			'notes' => $notes
 		);
 	}
 	return $results;
