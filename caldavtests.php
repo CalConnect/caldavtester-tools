@@ -917,9 +917,12 @@ function get_scripts()
 		$name = substr($path, strlen($caldavtester_dir.'/'.$testspath));
 		$xml = simplexml_load_file($path);
 		$features = array();
-		foreach($xml->{'require-feature'}[0] as $feature)
+		if (!empty($xml->{'require-feature'}[0]))
 		{
-			$features[] = (string)$feature;
+			foreach($xml->{'require-feature'}[0] as $feature)
+			{
+				$features[] = (string)$feature;
+			}
 		}
 		$scripts[$name] = array(
 			'name' => $name,
