@@ -123,7 +123,10 @@ if (php_sapi_name() == 'cli')
 	elseif (isset($options['gui']))
 	{
 		if (empty($options['gui'])) $options['gui'] = 'localhost:8080';
-		$cmd = 'php -S '.escapeshellarg($options['gui']).' -t '.__DIR__.' '.__FILE__;
+		$cmd = 'php -S '.escapeshellarg($options['gui']).' -t '.__DIR__.' '.__FILE__.' '.
+			escapeshellarg('--serverinfo='.$serverinfo).' '.
+			(!empty($options['testeroptions']) ? ' --testeroptions '.$options['testeroptions'] : '').
+			' '.(!empty($options['git-sources']) ? escapeshellarg('--git-sources '.$options['git-sources']) : '');
 		error_log($cmd."\n");
 		error_log("Go to http://$options[gui]/ or use Ctrl C to stop WebGUI.\n");
 		exec($cmd);
@@ -213,6 +216,7 @@ function config_from_git($git_sources)
 		{
 			$commit_url = 'https://github.com/'.$matches[2].'/commit/';
 		}
+		//error_log(__METHOD__."('$git_sources') branch='$branch', revision='$revision', commit_url='$commit_url'");
 	}
 }
 
@@ -710,12 +714,11 @@ function import($_branch, $_revision, $_file)
 	static $prefix = '[{"result": ';
 
 	$json = is_resource($_file) ? stream_get_contents($_file) : file_get_contents($_file);
-	if (substr($json, 0, strlen($prefix)) !== $prefix)
+	if (substr($json, 0, strlen($prefix)) !== $prefix || !($scripts = json_decode($json, true)))
 	{
 		error_log($json);
 		return $json;
 	}
-	$scripts = json_decode($json, true);
 	//print_r($scripts);
 
 	$branch = label2id($_branch, '***branch***');
