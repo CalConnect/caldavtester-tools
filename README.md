@@ -36,15 +36,16 @@ Usage: php caldavtests.php
 --features
   List features incl. if they are enabled in serverinfo
 --serverinfo
-  Path to serverinfo.xml to use, default './serverinfo.xml'
+  Absolute path to serverinfo.xml to use, default './serverinfo.xml'
 --testeroptions <some-options>
   Pass arbitrary options to caldavtester.py, eg. '--ssl'
 --git-sources
-  Path to sources to use Git to automatic determine branch&revision
+  Absolute path to sources to use Git to automatic determine branch&revision
 --gui[=[<bind-addr> (default localhost)][:port (default 8080)]]
   Run WebGUI: point your browser at given address, default http://localhost:8080/
 --help|-h
   Display this help message
+Options --serverinfo, --testeroptions and --gitsources need to be specified only once and get stored in .caldavtests.json.
   ```
 ### Installation instructions
 ```
@@ -52,9 +53,9 @@ git clone git@github.com:CalConnect/caldavtester.git CalDAVTester
 cd CalDAVTester
 git clone git@github.com:apple/ccs-pycalendar.git pycalendar
 git clone git@github.com:CalConnect/caldavtester-tools
-ln -s scripts/server/serverinfo.xml # symlink (or copy) serverinfo.xml to caldavtester-tools default location
 # edit serverinfo.xml: eg. url of your server, features, etc
-php caldavtester-tools/caldavtests.php --run # run/record tests for first time
+# store config and run/record tests for first time
+php caldavtester-tools/caldavtests.php --run --serverinfo=<abs. path to serverinfo.xml> --git-sources=<abs. path to your server sources>
 php caldavtester-tools/caldavtests.php --gui # launch WebGUI at http://localhost:8080/
 ```
 

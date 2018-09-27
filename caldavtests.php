@@ -15,6 +15,8 @@ chdir(__DIR__);
 // configuration
 $caldavtester_dir = realpath('..');
 $caldavtester = "cd $caldavtester_dir; PYTHONPATH=pycalendar/src ./testcaldav.py --print-details-onfail --observer jsondump";
+$testeroptions = '';
+$bind_addr = 'localhost:8080';	// default bind-addr for gui
 $serverinfo = $caldavtester_dir.'/serverinfo.xml';
 $testspath = 'scripts/tests/';	// must be stripped off when calling testcaldav.py
 $db_path = $caldavtester_dir.'/results.sqlite';
@@ -25,6 +27,17 @@ $branch = 'master';
 $revision = '';
 // to link revisions to commits, get autodetected for Github.com
 $commit_url = '';	// equivalent of 'https://github.com/EGroupware/egroupware/commit/';
+
+// read config file, if exists
+$config_file = __DIR__.'/.caldavtests.json';
+if (file_exists($config_file) && ($conf = json_decode(file_get_contents($config_file), true)))
+{
+	foreach($conf as $name => $value)
+	{
+		$$name = $value;
+	}
+}
+
 config_from_git($git_sources);
 
 if (!file_exists($caldavtester_dir) || !file_exists($caldavtester_dir.'/testcaldav.py'))
@@ -65,11 +78,10 @@ if (php_sapi_name() == 'cli')
 			usage(5, "Specified serverinfo '$options[serverinfo]' not found!");
 		}
 		$serverinfo = realpath($options['serverinfo']);
-		$caldavtester .= ' -s '.escapeshellarg($serverinfo);
 	}
 	if (isset($options['testeroptions']))
 	{
-		$caldavtester .= ' '.$options['testeroptions'];
+		$testeroptions = $options['testeroptions'];
 	}
 	if (isset($options['git-sources']))
 	{
@@ -88,6 +100,27 @@ if (php_sapi_name() == 'cli')
 	{
 		$options['revision'] = $revision;
 	}
+
+	// add options to caldavtester command
+	$caldavtester .= ' -s '.escapeshellarg($serverinfo);
+	if (!empty($testeroptions))
+	{
+		$caldavtester .= ' '.$testeroptions;
+	}
+
+	// store changed config
+	$config = array(
+		'serverinfo' => $serverinfo,
+		'git_sources' => $git_sources,
+		'branch' => $branch,
+		'testeroptions' => $testeroptions,
+	);
+	if ((!isset($conf) || $conf != $config) &&
+		!file_put_contents($config_file, json_encode($config, JSON_UNESCAPED_SLASHES)))
+	{
+		error_log("Can't write configuration to $config_file!");
+	}
+
 	if (isset($options['import']))
 	{
 		if (empty($options['revision'])) usage(1, "Revision parameter --revision=<revision> is required!");
@@ -122,11 +155,8 @@ if (php_sapi_name() == 'cli')
 	}
 	elseif (isset($options['gui']))
 	{
-		if (empty($options['gui'])) $options['gui'] = 'localhost:8080';
-		$cmd = 'php -S '.escapeshellarg($options['gui']).' -t '.__DIR__.' '.__FILE__.' '.
-			escapeshellarg('--serverinfo='.$serverinfo).' '.
-			(!empty($options['testeroptions']) ? ' --testeroptions '.$options['testeroptions'] : '').
-			' '.(!empty($options['git-sources']) ? escapeshellarg('--git-sources '.$options['git-sources']) : '');
+		if (empty($options['gui'])) $options['gui'] = $bind_addr;
+		$cmd = 'php -S '.escapeshellarg($options['gui']).' -t '.__DIR__.' '.__FILE__;
 		error_log($cmd."\n");
 		error_log("Go to http://$options[gui]/ or use Ctrl C to stop WebGUI.\n");
 		exec($cmd);
@@ -228,7 +258,7 @@ function config_from_git($git_sources)
  */
 function usage($exit_code=0, $error_msg='')
 {
-	global $branch, $revision, $serverinfo, $git_sources;
+	global $branch, $revision, $serverinfo, $git_sources, $config_file, $testeroptions;
 
 	if ($error_msg)
 	{
@@ -254,15 +284,16 @@ function usage($exit_code=0, $error_msg='')
 	echo "--features\n";
 	echo "  List features incl. if they are enabled in serverinfo\n";
 	echo "--serverinfo=<path>\n";
-	echo "  Path to serverinfo.xml to use, default '$serverinfo'\n";
+	echo "  Absolute path to serverinfo.xml to use, default '$serverinfo'\n";
 	echo "--testeroptions=<some-options>\n";
-	echo "  Pass arbitrary options to caldavtester.py, eg. '--ssl'\n";
+	echo "  Pass arbitrary options to caldavtester.py, eg. '--ssl', default '$testeroptions'\n";
 	echo "--git-sources=<path>\n";
-	echo "  Path to sources to use Git to automatic determine branch&revision, default '$git_sources'\n";
+	echo "  Absolute path to sources to use Git to automatic determine branch&revision, default '$git_sources'\n";
 	echo "--gui[=[<bind-addr> (default localhost)][:port (default 8080)]]\n";
 	echo "  Run WebGUI: point your browser at given address, default http://localhost:8080/\n";
 	echo "--help|-h\n";
 	echo "  Display this help message\n";
+	echo "Options --serverinfo, --testeroptions and --gitsources need to be specified only once and get stored in $config_file.\n";
 
 	exit($exit_code);
 }
