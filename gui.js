@@ -74,7 +74,7 @@ jQuery().ready(function()
 		var percent = (success+failed) ? (100.0 * success / (success+failed)).toFixed(1) : '';
 		tr.find('td.percent').text(percent);
 		tr.removeClass('red').removeClass('yellow').removeClass('green');
-		tr.addClass(percent >= 100.0 ? 'green' : (percent < 50.0 ? 'red' : 'yellow'));
+		if (percent) tr.addClass(percent >= 100.0 ? 'green' : (percent < 50.0 ? 'red' : 'yellow'));
 	}
 
 	function prepare_page()
