@@ -28,6 +28,9 @@ $revision = '';
 // to link revisions to commits, get autodetected for Github.com
 $commit_url = '';	// equivalent of 'https://github.com/EGroupware/egroupware/commit/';
 
+// quiten undefiend index notices
+error_reporting(error_reporting() & ~E_NOTICE);
+
 // read config file, if exists
 $config_file = __DIR__.'/.caldavtests.json';
 if (file_exists($config_file) && ($conf = json_decode(file_get_contents($config_file), true)))
@@ -117,6 +120,7 @@ if (php_sapi_name() == 'cli')
 	$config = array(
 		'serverinfo' => $serverinfo,
 		'git_sources' => $git_sources,
+		'db_path' => $db_path,
 		'branch' => $branch,
 		'testeroptions' => $testeroptions,
 	);
@@ -150,7 +154,7 @@ if (php_sapi_name() == 'cli')
 	}
 	elseif (isset($options['delete']))
 	{
-		if (empty($options['delete'])) usage(3, "You need to specify what so delete: <script-name>, <feature> or all!");
+		if (empty($options['delete'])) usage(3, "You need to specify what to delete: <script-name>, <feature> or all!");
 		delete($options['branch'], $options['delete']);
 	}
 	elseif (isset($options['run']))
@@ -193,25 +197,24 @@ if(!empty($_REQUEST['script']))
 		header("HTTP/1.1 404 Not Found");
 	}
 }
-elseif (!empty($_REQUEST['result']))
+elseif (!empty($_REQUEST['result']) || !empty($_REQUEST['run']))
 {
-	display_result_details(!empty($_REQUEST['branch']) ? $_REQUEST['branch'] : $branch,
-		$_REQUEST['result'], true);
-}
-elseif (!empty($_REQUEST['run']))
-{
-	$output = array();
-	exec($cmd='php ./caldavtests.php '.escapeshellarg('--serverinfo='.$serverinfo).
-		(!empty($options['testeroptions']) ? ' --testeroptions '.$options['testeroptions'] : '').
-		' '.(!empty($options['git-sources']) ? escapeshellarg('--git-sources '.$options['git-sources']) : '').
-		' '.(!empty($_REQUEST['branch']) ? escapeshellarg('--branch='.$_REQUEST['branch']).' ' : '').
-		' '.(isset($options['all']) || !empty($_REQUEST['all']) ? '--all' : '').
-		' '.escapeshellarg('--run='.$_REQUEST['run']), $output, $ret);
-	error_log($cmd.' returned '.$ret);
-
+	$what = !empty($_REQUEST['result']) ? $_REQUEST['result'] : $_REQUEST['run'];
+	// if script was never run, run it now
+	if (!empty($_REQUEST['run']) || get_etag($_REQUEST['branch'], $_REQUEST['result']) === null)
+	{
+		$output = array();
+		exec($cmd='php ./caldavtests.php '.escapeshellarg('--serverinfo='.$serverinfo).
+			(!empty($options['testeroptions']) ? ' --testeroptions '.$options['testeroptions'] : '').
+			' '.(!empty($options['git-sources']) ? escapeshellarg('--git-sources '.$options['git-sources']) : '').
+			' '.(!empty($_REQUEST['branch']) ? escapeshellarg('--branch='.$_REQUEST['branch']).' ' : '').
+			' '.(isset($options['all']) || !empty($_REQUEST['all']) ? '--all' : '').
+			' '.escapeshellarg('--run='.$what), $output, $ret);
+		error_log($cmd.' returned '.$ret);
+	}
 	// return results
 	display_result_details(!empty($_REQUEST['branch']) ? $_REQUEST['branch'] : $branch,
-		$_REQUEST['run'], true);
+		$what, true);
 }
 elseif (!empty($_REQUEST['update']) && isset($_REQUEST['notes']))
 {
@@ -497,15 +500,13 @@ function display_scripts($what='all')
 }
 
 /**
- * Check if request contains a If-None-Match header and send 314 Not Matched or ETag header
- *
- * Function does NOT return, if If-None-Match matches current ETag.
+ * Get ETag for given branch and script
  *
  * @param string $branch
  * @param string $what =null eg. script-name, see limit_script_sql
- * @return string etag send as header
+ * @return string etag
  */
-function check_send_etag($branch, $what=null)
+function get_etag($branch, $what=null)
 {
 	global $db;
 
@@ -516,6 +517,21 @@ function check_send_etag($branch, $what=null)
 		(empty($what) ? '' : limit_script_sql($what)));
 	$etag = $get_etag->execute(array('branch' => $branch_id)) ? $get_etag->fetchColumn() : null;
 	//error_log(__METHOD__."('$branch', '$what') sql='$sql', etag='$etag'");
+	return $etag;
+}
+
+/**
+ * Check if request contains a If-None-Match header and send 314 Not Matched or ETag header
+ *
+ * Function does NOT return, if If-None-Match matches current ETag.
+ *
+ * @param string $branch
+ * @param string $what =null eg. script-name, see limit_script_sql
+ * @return string etag send as header
+ */
+function check_send_etag($branch, $what=null)
+{
+	$etag = get_etag($branch, $what);
 
 	// process If-None-Match header used to poll running script results
 	if (isset($_SERVER['HTTP_IF_NONE_MATCH']) && substr($_SERVER['HTTP_IF_NONE_MATCH'], 1, -1) == $etag)
@@ -716,6 +732,26 @@ ORDER BY percent DESC,description ASC');
 		$failed  += $script['failed'];
 		$notes   += $script['notes'];
 		$results[$script['name']] = $script;
+	}
+	// add not yet run scripts to not start empty
+	$features = null;
+	foreach($scripts as $script)
+	{
+		if (!isset($features)) $features = get_features ();
+		if (!isset($results[$script['name']]))
+		{
+			if ($script['require-feature'])
+			{
+				foreach($script['require-feature'] as $feature)
+				{
+					if (isset($features[$feature]) && !$features[$feature]['enabled'])
+					{
+						continue 2;	// do not add scripts which require disabled features
+					}
+				}
+			}
+			$results[$script['name']] = $script;
+		}
 	}
 	// add total to results
 	if ($results)

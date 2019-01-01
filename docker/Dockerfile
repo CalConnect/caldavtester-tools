@@ -14,8 +14,13 @@ RUN apk --update add git apache2 \
 
 COPY httpd-foreground /
 COPY .caldavtests.json /caldavtester/caldavtester-tools/
-COPY caldavtests.php /caldavtester/caldavtester-tools/
-COPY index.php /caldavtester/caldavtester-tools/
+RUN chown apache:apache /caldavtester/caldavtester-tools/.caldavtests.json
+
+#COPY caldavtests.php /caldavtester/caldavtester-tools/
+#COPY index.php /caldavtester/caldavtester-tools/
+
+RUN mkdir /data && chown apache:apache /data
+VOLUME data sources
 
 EXPOSE 80
 CMD ["/httpd-foreground"]
