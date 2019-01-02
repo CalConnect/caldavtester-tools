@@ -25,8 +25,15 @@ docker build -t $REPO/$IMAGE:latest . && {
 	#docker tag $REPO/$IMAGE:latest $REPO/$IMAGE:$TAG
 	#docker push $REPO/$IMAGE:$TAG
 
+	# add docker volume caldavtester-data, if not existing
+	docker volume ls | grep caldavtester-data || docker volume create caldavtester-data
+
 	# re-start caldavtester container after successful build
 	docker rm -f caldavtester
-	docker run -d --add-host boulder.egroupware.org:192.168.0.101 -p8081:80 -v /Users/ralf/CalDavTester:/data -v /opt/local/apache2/htdocs/egroupware:/sources --name caldavtester quay.io/egroupware/caldavtester
+	docker run -d -p8081:80 \
+		--add-host boulder.egroupware.org:192.168.0.101 \
+		-v caldavtester-data:/data \
+		-v /opt/local/apache2/htdocs/egroupware:/sources \
+		--name caldavtester quay.io/egroupware/caldavtester
 	docker logs -f caldavtester
 }
