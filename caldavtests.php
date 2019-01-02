@@ -201,7 +201,8 @@ elseif (!empty($_REQUEST['result']) || !empty($_REQUEST['run']))
 {
 	$what = !empty($_REQUEST['result']) ? $_REQUEST['result'] : $_REQUEST['run'];
 	// if script was never run, run it now
-	if (!empty($_REQUEST['run']) || get_etag($_REQUEST['branch'], $_REQUEST['result']) === null)
+	if (!empty($_REQUEST['run']) ||
+		get_etag(!empty($_REQUEST['branch']) ? $_REQUEST['branch'] : $branch, $_REQUEST['result']) === null)
 	{
 		$output = array();
 		exec($cmd='php ./caldavtests.php '.escapeshellarg('--serverinfo='.$serverinfo).
@@ -516,7 +517,7 @@ function get_etag($branch, $what=null)
 	$get_etag = $db->prepare($sql="SELECT MAX(updated)||' '||COALESCE(SUM(time),'') FROM results WHERE branch=:branch".
 		(empty($what) ? '' : limit_script_sql($what)));
 	$etag = $get_etag->execute(array('branch' => $branch_id)) ? $get_etag->fetchColumn() : null;
-	//error_log(__METHOD__."('$branch', '$what') sql='$sql', etag='$etag'");
+	//error_log(__METHOD__."('$branch', '$what') sql='$sql', etag=".toString($etag));
 	return $etag;
 }
 
@@ -819,7 +820,7 @@ function import($_branch, $_revision, $_file)
 				'time'   => 0,
 			)))
 			{
-				error_log(__LINE__.': Update failed: '.implode(' ', $update->errorInfo()).': '.json_encode($bind));
+				error_log(__LINE__.': Update failed: '.implode(' ', $update_script->errorInfo()).': '.json_encode($bind));
 			}
 			elseif (($rc=$update_script->rowCount()))
 			{
@@ -854,7 +855,7 @@ function import($_branch, $_revision, $_file)
 					'time'   => 0,
 				)))
 				{
-					error_log(__LINE__.': Update failed: '.implode(' ', $update->errorInfo()).': '.json_encode($bind));
+					error_log(__LINE__.': Update failed: '.implode(' ', $update_suite->errorInfo()).': '.json_encode($bind));
 				}
 				elseif (($rc=$update_suite->rowCount()))
 				{
@@ -1094,6 +1095,34 @@ function get_features()
 	}
 	return $features;
 }
+
+/**
+ * Format array or other types as (one-line) string, eg. for error_log statements
+ *
+ * @param mixed $var variable to dump
+ * @return string
+ */
+function toString($var)
+{
+	switch (($type = gettype($var)))
+	{
+		case 'boolean':
+			return $var ? 'TRUE' : 'FALSE';
+		case 'string':
+			return "'$var'";
+		case 'integer':
+		case 'double':
+		case 'resource':
+			return $var;
+		case 'NULL':
+			return 'NULL';
+		case 'object':
+		case 'array':
+			return str_replace(array("\n",'    '/*,'Array'*/),'',print_r($var,true));
+	}
+	return 'UNKNOWN TYPE!';
+}
+
 /**
  * Get or create id for label
  *
