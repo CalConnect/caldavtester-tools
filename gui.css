@@ -26,8 +26,24 @@ tr.yellow {
 tr.red {
 	background-color: #fbe1e1;
 }
-tr.ignored {
+tr.ignored, tr {
 	background-color: #f8f8f8;
+}
+table.serverinfo {
+	width: 100%;
+}
+tr.comment, tr.datafilter-header {
+	background-color: #e0e0e0;
+}
+table.serverinfo input[type="text"], table.serverinfo input:not([type]) {
+    width: 99%;
+}
+table.serverinfo td:first-child {
+    width: 200px;
+}
+table.serverinfo td.description {
+    color: #606060;
+    font-size: 90%;
 }
 td {
 	padding-left: 5px;

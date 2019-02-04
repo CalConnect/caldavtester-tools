@@ -3,7 +3,7 @@ FROM python:2.7-alpine
 MAINTAINER rb@egroupware.org
 
 RUN apk --update add git apache2 \
-		php-apache2 php-cli php-json php-pdo php-pdo_sqlite php-simplexml; \
+		php-apache2 php-cli php-json php-pdo php-pdo_sqlite php-simplexml php-dom; \
 	sed -e 's|/var/www/localhost/htdocs|/caldavtester/caldavtester-tools|g' \
 		-e 's|^ErrorLog logs/error.log|ErrorLog /dev/stderr|' \
 		-i /etc/apache2/httpd.conf

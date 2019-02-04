@@ -46,4 +46,5 @@ if (file_exists($serverinfo))
 }
 
 die("<pre><b>No serverinfo.xml found!</b>\n\nYou need to supply it as volume under /data:\n\ndocker run -p8080:80 -v &lt;/dir/of/serverinfo.xml>:/data quay.io/egroupware/caldavtester\n\n".
-	"<form method='POST' enctype='multipart/form-data'>Or upload it now <input type='file' name='serverinfo' onchange='this.form.submit();'/></form>");
+	"Or <a href='/serverinfo.php'>create one with our wizzard</a> ".
+	"<form method='POST' enctype='multipart/form-data' style='display: inline-block'>or upload it now <input type='file' name='serverinfo' onchange='this.form.submit();'/></form>");
