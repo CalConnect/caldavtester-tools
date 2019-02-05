@@ -48,31 +48,24 @@ table.serverinfo td.description {
 table.serverinfo input[type="checkbox"] {
 	margin-right: 8px;
 }
-div.buttons {
-	width: 100%;
-}
-div.buttons input[type="submit"] {
-	font-size: 150%;
-	margin: 16px;
-}
-div.buttons input[name="button[download]"] {
-	float: right;
-}
-div#topmenu {
+div#topmenu, div.buttons {
 	border: 1px solid black;
 	display: inline-block;
 	z-index: 100;
-	position: absolute;
+	position: fixed;
 	left: 50%;
-	top: -4px;
+	top: -30px;
 	transform: translate(-50%, 0);
 	border-radius: 5px;
-	padding: 5px;
+	padding: 8px;
 	background-color: white;
 	box-shadow: 3px 3px 10px 0px;
 	font-size: 90%;
 }
-input#serverinfo {
+div#topmenu:hover, div.buttons {
+	top: -4px;
+}
+input#serverinfo, div.buttons input {
 	font-size: 120%;
 }
 td {
