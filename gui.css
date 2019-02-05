@@ -56,20 +56,24 @@ div.buttons input[type="submit"] {
 	margin: 16px;
 }
 div.buttons input[name="button[download]"] {
-    float: right;
+	float: right;
 }
-div#serverinfo {
-    border: 1px solid black;
-    display: inline-block;
-	cursor: pointer;
-    z-index: 100;
-    position: absolute;
-    left: 50%;
-    top: -4px;
-    transform: translate(-50%, 0);
-    border-radius: 5px;
-    padding: 5px;
-    background-color: white;
+div#topmenu {
+	border: 1px solid black;
+	display: inline-block;
+	z-index: 100;
+	position: absolute;
+	left: 50%;
+	top: -4px;
+	transform: translate(-50%, 0);
+	border-radius: 5px;
+	padding: 5px;
+	background-color: white;
+	box-shadow: 3px 3px 10px 0px;
+	font-size: 90%;
+}
+input#serverinfo {
+	font-size: 120%;
 }
 td {
 	padding-left: 5px;

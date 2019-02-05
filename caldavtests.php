@@ -257,6 +257,11 @@ function config_from_git($git_sources)
 		}
 		//error_log(__METHOD__."('$git_sources') branch='$branch', revision='$revision', commit_url='$commit_url'");
 	}
+	// get revision from request
+	elseif (!empty($_REQUEST['revision']) && preg_match('/^[0-9a-f]+$/', $_REQUEST['revision']))
+	{
+		$revision = $_REQUEST['revision'];
+	}
 }
 
 /**
@@ -315,7 +320,7 @@ function usage($exit_code=0, $error_msg='')
  */
 function display_results($branch, $html=false)
 {
-	global $commit_url;
+	global $commit_url, $revision;
 
 	if (!$html)
 	{
@@ -325,7 +330,9 @@ function display_results($branch, $html=false)
 	{
 		$etag = check_send_etag($branch);
 		html_header();
-		echo "<div id='serverinfo' onclick='location.href=\"/serverinfo.php\";'>Edit serverinfo.xml</div>\n";
+		echo "<div id='topmenu'>".
+			"<input type='button' id='serverinfo' value='Edit serverinfo' onclick='location.href=\"/serverinfo.php\";'/>\n".
+			"Revision: <input id='revision' size='10' placeholder='".htmlspecialchars($revision)."' title='Set revision, if it can not be determined from git'/></div>\n";
 		echo "<table class='results' data-commit-url='".htmlspecialchars($commit_url)."' data-etag='".htmlspecialchars($etag)."'>\n";
 		echo "<tr class='header'><th></th><th>Percent</th><th>Success</th><th>Failed</th><th>Script (Features)</th><th>File</th><th>Updated</th><th class='time'>Time</th><th class='notes'>N</th></tr>\n";
 	}

@@ -11,6 +11,7 @@
 jQuery().ready(function()
 {
 	var commit_url = jQuery('table.results').attr('data-commit-url');
+	var revision = jQuery('input#revision');
 
 	function update_result(_data, output, spinner, tr, no_click)
 	{
@@ -45,7 +46,8 @@ jQuery().ready(function()
 					.addClass('spinner');
 
 				var all = _ev.shiftKey ? '&all=1' : '';
-				jQuery.ajax(location.href+'?run='+encodeURIComponent(tr[0].id)+all).done(function(_data)
+				var rev = revision.val() ? '&revision='+encodeURIComponent(revision.val()) : '';
+				jQuery.ajax(location.href+'?run='+encodeURIComponent(tr[0].id)+all+rev).done(function(_data)
 				{
 					update_result(_data, output, spinner, tr, true);	// dont install click handler again
 				});
@@ -91,8 +93,9 @@ jQuery().ready(function()
 					var details = jQuery('<tr class="details">');
 					var spinner = jQuery('<td class="spinner">').appendTo(details);
 					var output = jQuery('<td colspan="8" class="output">&nbsp;</td>').appendTo(details);
+					var rev = revision.val() ? '&revision='+encodeURIComponent(revision.val()) : '';
 					tr.after(details);
-					jQuery.ajax(location.href+'?result='+encodeURIComponent(tr[0].id)).done(function(_data)
+					jQuery.ajax(location.href+'?result='+encodeURIComponent(tr[0].id)+rev).done(function(_data)
 					{
 						update_result(_data, output, spinner, tr);
 					});
