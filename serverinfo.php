@@ -40,21 +40,136 @@ if (!file_exists($caldavtester_dir) || !file_exists($caldavtester_dir.'/testcald
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST')
 {
+	process_serverinfo();
+}
+display_serverinfo();
+
+function process_serverinfo()
+{
 	switch($button=key($_POST['button']))
 	{
 		case 'save':
 		case 'apply':
-			die('Not yet implemented :(');
+		case 'download':
+			$xml = save_serverinfo($_POST);
+			//if ($button === 'download')
+			{
+				header('Content-Type: application/xml; charset=utf-8');
+				if ($button === 'download') header('Content-disposition: attachment; filename=serverinfo.xml');
+				echo $xml->saveXML();
+				exit;
+			}
+			if ($button !== 'save') break;
+			// fall through
 		case 'cancel':
 			header('Location: /');
 			exit;
 	}
 }
-display_serverinfo();
+
+function save_serverinfo(array $values)
+{
+	global $caldavtester_dir;
+
+	$xml = $serverinfo = null;
+	foreach(parse_serverinfo($caldavtester_dir.'/scripts/server/serverinfo.xml', true, $xml) as $name => $data)
+	{
+		switch($name)
+		{
+			case 'features':
+				save_features($data, $values[$name]);
+				break;
+
+			case 'substitutions':
+				save_substitutions($data, $values[$name]);
+				break;
+
+			case 'calendardatafilter':
+			case 'addressdatafilter':
+				save_datafilter($xml, $name, $data, $values[$name]);
+				break;
+
+			default:
+				$data['node']->nodeValue = $values[$name];
+				break;
+		}
+	}
+	return $xml;
+}
+
+function save_datafilter($xml, $name, $data, $values)
+{
+	foreach($data as $n => $entry)
+	{
+		if ($values[$n] !== '')
+		{
+			$entry['node']->nodeValue = $values[$n];
+		}
+		elseif (isset($entry['node']))
+		{
+			$entry['node']->parentNode->removeChild($entry['node']);
+		}
+	}
+	$serverinfo = $xml->getElementsByTagName('serverinfo')->item(0);
+	for($n = count($data); isset($values[$n]); ++$n)
+	{
+		if (!empty($values[$n]))
+		{
+			error_log("$n: $name: ".toString($values[$n]));
+			$serverinfo->appendChild($xml->createElement($name, $values[$n]));
+		}
+	}
+}
+
+function save_substitutions(array $substitutions, array $values)
+{
+	foreach($substitutions as $name => $data)
+	{
+		if (isset($data['repeats']))
+		{
+			$data['node']->setAttribute('count', $values['repeats'][$name]);
+
+			save_substitutions($data['repeats'], $values);
+		}
+		elseif ($data['value'] !== $values[$name])
+		{
+			$data['node']->value = $values[$name];
+		}
+	}
+}
+
+function save_features(array $features, array $values)
+{
+	foreach($features as $name => $data)
+	{
+		// has status changed
+		if (($data['node']->getAttribute('enable') !== 'false') !== !empty($values[$name]))
+		{
+			error_log("$name: data[enabled]=".toString($data['enabled']).", checked=".toString($values[$name]));
+			// enabled, attr may exists
+			if (!empty($values[$name]))
+			{
+				$data['node']->removeAttribute('enable');
+			}
+			// disabled, add attr
+			else
+			{
+				$data['node']->setAttribute('enable', 'false');
+			}
+		}
+	}
+}
 
 function display_serverinfo()
 {
 	global $caldavtester_dir;
+	static $name2input_attrs = [
+		'nonsslport' => 'type="number" min="1" step="1"',
+		'sslport'    => 'type="number" min="1" step="1"',
+		'waitcount'  => 'type="number" min="0" step="1"',
+		'waitdelay'  => 'type="number" min="0" step=".05"',
+		'waitsuccess' => 'type="number" min="0" step="1"',
+	];
 
 	html_header();
 	echo "<form method='POST'>\n<table class='serverinfo'>\n";
@@ -90,14 +205,15 @@ function display_serverinfo()
 
 			default:
 				echo "<tr><td>".htmlspecialchars($data['name'])."</td>\n";
-				echo "\t<td><input name='".htmlspecialchars($data['name'])."' value='".
-					htmlspecialchars($data['value'])."'/></td></tr>\n";
+				echo "\t<td><input name='".htmlspecialchars($data['name']).
+					"' ".(isset($name2input_attrs[$name]) ? $name2input_attrs[$name] : '').
+					"' value='".htmlspecialchars($data['value'])."'/></td></tr>\n";
 				break;
 		}
 	}
 	echo "</table>\n";
 	echo "<div class='buttons'>\n";
-	foreach(['save' => 'Save', 'apply' => 'Apply', 'cancel' => 'Cancel'] as $name => $label)
+	foreach(['save' => 'Save', 'apply' => 'Apply', 'download' => 'Download', 'cancel' => 'Cancel'] as $name => $label)
 	{
 		echo "<input type='submit' name='button[$name]' value='$label'/>\n";
 	}
@@ -113,7 +229,7 @@ function display_features(array $features)
 		{
 			echo "<tr class='comment'><td colspan='2'>".htmlspecialchars($data['comment'])."</td></tr>\n";
 		}
-		echo "<tr class='feature'><td><label><input name='".htmlspecialchars($name)."' type='checkbox' ".
+		echo "<tr class='feature'><td><label><input name='features[".htmlspecialchars($name)."]' type='checkbox' ".
 			($data['enabled'] ? 'checked' : '')."/>".
 			htmlspecialchars($name)."</label></td>\n";
 
@@ -132,18 +248,17 @@ function display_substitutions(array $substitutions)
 		}
 		if (isset($data['repeats']))
 		{
-			echo "<tr class='repeats'><td>Num: <input name='repeats[$name]".
+			echo "<tr class='repeats'><td>Number:</td><td><input name='substitutions[repeats][$name]".
 				"' type='number' min='2' max='100'".
-				" value='".htmlspecialchars($data['count'])."'/></td>\n";
-			echo "\t<td>".htmlspecialchars($data['comment'])."</td></tr>\n";
+				" value='".htmlspecialchars($data['count'])."'/></td></tr>\n";
 
 			display_substitutions($data['repeats']);
 		}
 		else
 		{
 			echo "<tr class='substitution'><td>".htmlspecialchars($name)."</td>\n";
-			echo "\t<td><input name='".htmlspecialchars($name).
-				"' value='".htmlspecialchars($data['value'])."'/></td></tr>\n";
+			echo "\t<td><input name='substitutions[".htmlspecialchars($name).
+				"]' value='".htmlspecialchars($data['value'])."'/></td></tr>\n";
 		}
 	}
 }
@@ -151,9 +266,13 @@ function display_substitutions(array $substitutions)
 /**
  * Get features defined in serverinfo and there enabled/disabled state
  *
- * @return array feature => array(name, enabled, description)
+ * @param string $path
+ * @param boolean $add_node
+ * @param DOMDocument& $xml =null on return
+ * @return array
+ * @throws Exception on error
  */
-function parse_serverinfo($path, $add_node=false)
+function parse_serverinfo($path, $add_node=false, &$xml=null)
 {
 	$xml = new DOMDocument();
 	if (!$xml->load($path))
@@ -184,8 +303,8 @@ function parse_serverinfo($path, $add_node=false)
 				$values[$node->nodeName][] = array(
 					'name'  => $node->nodeName,
 					'value' => $node->nodeValue,
+					'node'  => $add_node ? $node : null,
 				);
-				if ($add_node) $values[$node->nodeName]['node'] = $node;
 				break;
 
 			default:
@@ -211,12 +330,10 @@ function get_features(DOMNodeList $nodes, $add_node=false)
 	{
 		if ($node->nodeName !== 'feature') continue;
 
-		$enable = $node->attributes->getNamedItem('enable');
-		$description = $node->attributes->getNamedItem('description');
 		$values[$node->nodeValue] = [
 			'name' => $node->nodeValue,
-			'enabled' => empty($enable) || $enable->nodeValue !== 'false',
-			'description' => $description ? $description->nodeValue : null,
+			'enabled' => $node->getAttribute('enable') !== 'false',
+			'description' => $node->getAttribute('description'),
 		];
 		if ($node->previousSibling->previousSibling->nodeName === '#comment')
 		{
@@ -235,9 +352,10 @@ function get_substitutions(DOMNodeList $nodes, $add_node=false)
 		if ($node->nodeName === 'repeat')
 		{
 			$substitution = [
-				'count' => $node->attributes->getNamedItem('count')->nodeValue,
+				'count' => $node->getAttribute('count'),
 				'repeats' => get_substitutions($node->childNodes, $add_node),
 			];
+			if ($add_node) $substitution['node'] = $node;
 		}
 		elseif ($node->nodeName === 'substitution')
 		{
@@ -247,12 +365,14 @@ function get_substitutions(DOMNodeList $nodes, $add_node=false)
 				if (in_array($subnode->nodeName, ['key', 'value']))
 				{
 					${$subnode->nodeName} = $subnode->nodeValue;
+					if ($subnode->nodeName == 'value') $value_node = $subnode;
 				}
 			}
 			$substitution = [
 				'name'  => $key,
 				'value' => $value,
 			];
+			if ($add_node) $substitution['node'] = $value_node;
 		}
 		else
 		{
@@ -263,7 +383,6 @@ function get_substitutions(DOMNodeList $nodes, $add_node=false)
 		{
 			$substitution['comment'] = $node->previousSibling->previousSibling->nodeValue;
 		}
-		if ($add_node) $substitution['node'] = $node;
 
 		if (!empty($substitution['name']))
 		{
