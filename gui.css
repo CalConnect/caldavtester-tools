@@ -36,17 +36,27 @@ tr.comment, tr.datafilter-header {
 	background-color: #e0e0e0;
 }
 table.serverinfo input[type="text"], table.serverinfo input:not([type]) {
-    width: 99%;
+	width: 99%;
 }
 table.serverinfo td:first-child {
-    width: 200px;
+	width: 200px;
 }
 table.serverinfo td.description {
-    color: #606060;
-    font-size: 90%;
+	color: #606060;
+	font-size: 90%;
 }
 table.serverinfo input[type="checkbox"] {
-    margin-right: 8px;
+	margin-right: 8px;
+}
+div.buttons {
+	width: 100%;
+}
+div.buttons input[type="submit"] {
+	font-size: 150%;
+	margin: 16px;
+}
+div.buttons input[name="button[download]"] {
+    float: right;
 }
 td {
 	padding-left: 5px;

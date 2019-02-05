@@ -20,7 +20,7 @@ chdir(__DIR__);
 $caldavtester_dir = realpath('..');
 $serverinfo = $caldavtester_dir.'/serverinfo.xml';
 
-// quiten undefiend index notices
+// quiten undefined index notices
 error_reporting(error_reporting() & ~E_NOTICE);
 
 // read config file, if exists
@@ -46,16 +46,24 @@ display_serverinfo();
 
 function process_serverinfo()
 {
+	global $serverinfo;
+
 	switch($button=key($_POST['button']))
 	{
 		case 'save':
 		case 'apply':
 		case 'download':
 			$xml = save_serverinfo($_POST);
-			//if ($button === 'download')
+			if (file_exists($serverinfo) && is_writable(dirname($serverinfo)))
+			{
+				rename ($serverinfo, dirname($serverinfo).'/'.basename($serverinfo, '.xml').'.old.xml');
+			}
+			$xml->save($serverinfo);
+
+			if ($button === 'download')
 			{
 				header('Content-Type: application/xml; charset=utf-8');
-				if ($button === 'download') header('Content-disposition: attachment; filename=serverinfo.xml');
+				header('Content-disposition: attachment; filename=serverinfo.xml');
 				echo $xml->saveXML();
 				exit;
 			}
@@ -110,13 +118,22 @@ function save_datafilter($xml, $name, $data, $values)
 			$entry['node']->parentNode->removeChild($entry['node']);
 		}
 	}
-	$serverinfo = $xml->getElementsByTagName('serverinfo')->item(0);
+	$serverinfo = null;
 	for($n = count($data); isset($values[$n]); ++$n)
 	{
 		if (!empty($values[$n]))
 		{
-			error_log("$n: $name: ".toString($values[$n]));
+			if (!isset($serverinfo))
+			{
+				$serverinfo = $xml->getElementsByTagName('serverinfo')->item(0);
+				$serverinfo->appendChild($xml->createTextNode("\n\t"));
+				$serverinfo->appendChild($xml->createComment('Additional filters'));
+				$serverinfo->appendChild($xml->createTextNode("\n"));
+			}
+			//error_log("$n: $name: ".toString($values[$n]));
+			$serverinfo->appendChild($xml->createTextNode("\t"));
 			$serverinfo->appendChild($xml->createElement($name, $values[$n]));
+			$serverinfo->appendChild($xml->createTextNode("\n"));
 		}
 	}
 }
@@ -133,7 +150,8 @@ function save_substitutions(array $substitutions, array $values)
 		}
 		elseif ($data['value'] !== $values[$name])
 		{
-			$data['node']->value = $values[$name];
+			//error_log("updating $name: ".toString($data['value'])." --> ".toString($values[$name]));
+			$data['node']->nodeValue = $values[$name];
 		}
 	}
 }
@@ -145,7 +163,7 @@ function save_features(array $features, array $values)
 		// has status changed
 		if (($data['node']->getAttribute('enable') !== 'false') !== !empty($values[$name]))
 		{
-			error_log("$name: data[enabled]=".toString($data['enabled']).", checked=".toString($values[$name]));
+			//error_log("updating $name: data[enabled]=".toString($data['enabled']).", checked=".toString($values[$name]));
 			// enabled, attr may exists
 			if (!empty($values[$name]))
 			{
@@ -162,7 +180,7 @@ function save_features(array $features, array $values)
 
 function display_serverinfo()
 {
-	global $caldavtester_dir;
+	global $caldavtester_dir,$serverinfo;
 	static $name2input_attrs = [
 		'nonsslport' => 'type="number" min="1" step="1"',
 		'sslport'    => 'type="number" min="1" step="1"',
@@ -174,7 +192,17 @@ function display_serverinfo()
 	html_header();
 	echo "<form method='POST'>\n<table class='serverinfo'>\n";
 
-	foreach(parse_serverinfo($caldavtester_dir.'/scripts/server/serverinfo.xml') as $name => $data)
+	// read serverinfo template from CalDAVTester sources
+	$template = $caldavtester_dir.'/scripts/server/serverinfo.xml';
+	$info = parse_serverinfo($template);
+
+	// if we have an own serverinfo.xml, use it to overwrite values from the template
+	if (realpath($template) !== realpath($serverinfo) && file_exists($serverinfo))
+	{
+		$own_info = parse_serverinfo($serverinfo);
+	}
+
+	foreach($info as $name => $data)
 	{
 		if (!empty($data['comment']))
 		{
@@ -183,31 +211,41 @@ function display_serverinfo()
 		switch($name)
 		{
 			case 'features':
-				display_features($data);
+				display_features($data, $own_info[$name]);
 				break;
 
 			case 'substitutions':
-				display_substitutions($data);
+				display_substitutions($data, $own_info[$name]);
 				break;
 
 			case 'calendardatafilter':
 			case 'addressdatafilter':
+				// if we have own filters, use them (no merging currently!)
+				if (isset($own_info[$name])) $data = $own_info[$name];
+				// create a header
+				echo "<tr class='$name datafilter-header'><td colspan='2'>".
+					htmlspecialchars(ucfirst($name))."</td>";
 				// one empty extra line to add a new filter
 				$data[] = ['value' => ''];
 				foreach($data as $n => $entry)
 				{
-					echo "<tr class='$name".($n ? '' : ' datafilter-header').
-						"'><td>".htmlspecialchars($n ? '' : $name)."</td>";
+					if (!empty($entry['comment']))
+					{
+						echo "<tr class='comment'><td colspan='2'>".
+							htmlspecialchars($entry['comment'])."</td></tr>\n";
+					}
+					echo "<tr class='$name'><td></td>";
 					echo "<td><input name='".htmlspecialchars($name.'['.$n.']')."' value='".
 						htmlspecialchars($entry['value'])."'/></td></tr>\n";
 				}
 				break;
 
 			default:
+				$value = isset($own_info[$name]) ? $own_info[$name]['value'] : $data['value'];
 				echo "<tr><td>".htmlspecialchars($data['name'])."</td>\n";
 				echo "\t<td><input name='".htmlspecialchars($data['name']).
 					"' ".(isset($name2input_attrs[$name]) ? $name2input_attrs[$name] : '').
-					"' value='".htmlspecialchars($data['value'])."'/></td></tr>\n";
+					"' value='".htmlspecialchars($value)."'/></td></tr>\n";
 				break;
 		}
 	}
@@ -221,16 +259,20 @@ function display_serverinfo()
 	echo "</body>\n</html>\n";
 }
 
-function display_features(array $features)
+function display_features(array $features, array $own_features=null)
 {
-	foreach($features as $name => $data)
+	foreach($own_features ? $own_features : $features as $name => $data)
 	{
 		if (!empty($data['comment']))
 		{
 			echo "<tr class='comment'><td colspan='2'>".htmlspecialchars($data['comment'])."</td></tr>\n";
 		}
+		// if we have own features, not existing features are considered disabled (commented out!)
+		$value = !isset($own_features) ? $data['enabled'] :
+			(isset($own_features[$name]) ? $own_features[$name]['enabled'] : false);
+
 		echo "<tr class='feature'><td><label><input name='features[".htmlspecialchars($name)."]' type='checkbox' ".
-			($data['enabled'] ? 'checked' : '')."/>".
+			($value ? 'checked' : '')."/>".
 			htmlspecialchars($name)."</label></td>\n";
 
 		echo "\t<td class='description'><label for='".htmlspecialchars($name)."'>".
@@ -238,7 +280,7 @@ function display_features(array $features)
 	}
 }
 
-function display_substitutions(array $substitutions)
+function display_substitutions(array $substitutions, array $own_substitutions=null)
 {
 	foreach($substitutions as $name => $data)
 	{
@@ -248,17 +290,22 @@ function display_substitutions(array $substitutions)
 		}
 		if (isset($data['repeats']))
 		{
+			$count = isset($own_substitutions[$name]['count']) ?
+				$own_substitutions[$name]['count'] : $data['count'];
 			echo "<tr class='repeats'><td>Number:</td><td><input name='substitutions[repeats][$name]".
 				"' type='number' min='2' max='100'".
-				" value='".htmlspecialchars($data['count'])."'/></td></tr>\n";
+				" value='".htmlspecialchars($count)."'/></td></tr>\n";
 
-			display_substitutions($data['repeats']);
+			display_substitutions($data['repeats'],
+				isset($own_substitutions[$name]['repeats']) ? $own_substitutions[$name]['repeats'] : null);
 		}
 		else
 		{
+			$value = isset($own_substitutions[$name]) ?
+				$own_substitutions[$name]['value'] : $data['value'];
 			echo "<tr class='substitution'><td>".htmlspecialchars($name)."</td>\n";
 			echo "\t<td><input name='substitutions[".htmlspecialchars($name).
-				"]' value='".htmlspecialchars($data['value'])."'/></td></tr>\n";
+				"]' value='".htmlspecialchars($value)."'/></td></tr>\n";
 		}
 	}
 }
@@ -304,6 +351,8 @@ function parse_serverinfo($path, $add_node=false, &$xml=null)
 					'name'  => $node->nodeName,
 					'value' => $node->nodeValue,
 					'node'  => $add_node ? $node : null,
+					'comment' => $node->previousSibling->previousSibling->nodeName === '#comment' ?
+						$node->previousSibling->previousSibling->nodeValue : null,
 				);
 				break;
 
@@ -311,12 +360,10 @@ function parse_serverinfo($path, $add_node=false, &$xml=null)
 				$values[$node->nodeName] = array(
 					'name'  => $node->nodeName,
 					'value' => $node->nodeValue,
+					'node'  => $add_node ? $node : null,
+					'comment' => $node->previousSibling->previousSibling->nodeName === '#comment' ?
+						$node->previousSibling->previousSibling->nodeValue : null,
 				);
-				if ($node->previousSibling->previousSibling->nodeName === '#comment')
-				{
-					$values[$node->nodeName]['comment'] = $node->previousSibling->previousSibling->nodeValue;
-				}
-				if ($add_node) $values[$node->nodeName]['node'] = $node;
 		}
 	}
 	//echo "<pre>".print_r($values, true)."</pre>\n";
