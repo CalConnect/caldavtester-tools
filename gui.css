@@ -58,6 +58,19 @@ div.buttons input[type="submit"] {
 div.buttons input[name="button[download]"] {
     float: right;
 }
+div#serverinfo {
+    border: 1px solid black;
+    display: inline-block;
+	cursor: pointer;
+    z-index: 100;
+    position: absolute;
+    left: 50%;
+    top: -4px;
+    transform: translate(-50%, 0);
+    border-radius: 5px;
+    padding: 5px;
+    background-color: white;
+}
 td {
 	padding-left: 5px;
 }
