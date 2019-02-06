@@ -182,6 +182,33 @@ jQuery().ready(function()
 	}
 	prepare_page();
 
+	// simple accordion for editing serverinfo document
+	function activate_accordion(id)
+	{
+		var active=false;
+		jQuery('table.serverinfo tr').each(function(i, node)
+		{
+			if (node.id)
+			{
+				active = node.id === id && !jQuery(node).hasClass('collapse');
+				jQuery(node).toggleClass('collapse', active);
+			}
+			else if (active)
+			{
+				jQuery(node).show('fast', 'swing');
+			}
+			else
+			{
+				jQuery(node).hide();
+			}
+		});
+	}
+	jQuery('table.serverinfo tr.accordionHeader').on('click', function()
+	{
+		activate_accordion(this.id);
+	});
+	activate_accordion('access');
+
 	/* poll server for updated results
 	var update = window.setInterval(function()
 	{

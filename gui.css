@@ -39,7 +39,8 @@ table.serverinfo input[type="text"], table.serverinfo input:not([type]) {
 	width: 80ex;
 }
 table.serverinfo td:first-child {
-	width: 200px;
+	width: 300px;
+	white-space: nowrap;
 }
 table.serverinfo td.description {
 	color: #606060;
@@ -50,6 +51,22 @@ table.serverinfo input[type="checkbox"] {
 }
 table.serverinfo input.discovered {
 	background-color: lightgoldenrodyellow;
+}
+table.serverinfo tr.accordionHeader {
+	background-color: #3399ff;
+	cursor: pointer;
+}
+table.serverinfo tr.accordionHeader > th {
+	background-image: url(images/expand.png);
+	background-repeat: no-repeat;
+	background-size: 20px 20px;
+	padding-left: 22px;
+	text-align: left;
+	font-weight: bold;
+	color: white;
+}
+table.serverinfo tr.accordionHeader.collapse > th {
+	background-image: url(images/collapse.png);
 }
 div.topmenu {
 	border: 1px solid black;
@@ -64,12 +81,12 @@ div.topmenu {
 	background-color: white;
 	box-shadow: 3px 3px 10px 0px;
 	font-size: 90%;
-    white-space: nowrap;
+	white-space: nowrap;
 }
 div.topmenu:hover, div#serverinfomenu, div#discovermenu {
 	top: -4px;
 }
-div.topmenu input {
+div.topmenu input, table.serverinfo input[type="button"] {
 	font-size: 120%;
 }
 td {

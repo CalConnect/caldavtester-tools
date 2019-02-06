@@ -203,12 +203,13 @@ function display_serverinfo()
 		$own_info = parse_serverinfo($serverinfo);
 	}
 
-	// integrate discovered values into $own_values
+	// do we have values from the discovery
 	if (isset($_POST['discovered']))
 	{
 		$discovered = json_decode($_POST['discovered'], true);
 	}
 
+	display_header('Access+Timeouts', 'access');
 	foreach($info as $name => $data)
 	{
 		if (!empty($data['comment']))
@@ -218,15 +219,18 @@ function display_serverinfo()
 		switch($name)
 		{
 			case 'features':
+				display_header('Enable / disable supported features', $name);
 				display_features($data, $own_info[$name], $discovered[$name]);
 				break;
 
 			case 'substitutions':
+				display_header('Substitutions / WebDAV tree', $name);
 				display_substitutions($data, $own_info[$name], $discovered[$name]);
 				break;
 
 			case 'calendardatafilter':
 			case 'addressdatafilter':
+				display_header('Filter out what validation should ignore', 'filter');
 				// if we have own filters, use them (no merging currently!)
 				if (isset($own_info[$name])) $data = $own_info[$name];
 				// create a header
@@ -277,7 +281,7 @@ function display_serverinfo()
 
 function display_features(array $features, array $own_features=null, array $discovered=null)
 {
-	foreach($own_features ? $own_features : $features as $name => $data)
+	foreach($features as $name => $data)
 	{
 		if (!empty($data['comment']))
 		{
@@ -328,6 +332,18 @@ function display_substitutions(array $substitutions, array $own_substitutions=nu
 				(isset($discovered[$name]) ? " class='discovered'" : '').
 				"/></td></tr>\n";
 		}
+	}
+}
+
+function display_header($name, $id)
+{
+	static $active=null;
+
+	if ($name !== $active)
+	{
+		echo "<tr id='".htmlspecialchars($id)."' class='accordionHeader'>".
+			"<th colspan='2'>".htmlspecialchars($name)."</th></tr>\n";
+		$active = $name;
 	}
 }
 
@@ -387,7 +403,7 @@ function parse_serverinfo($path, $add_node=false, &$xml=null)
 				);
 		}
 	}
-	//echo "<pre>".print_r($values, true)."</pre>\n";
+	//echo "$path<pre>".print_r($values, true)."</pre>\n";
 	return $values;
 }
 
