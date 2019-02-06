@@ -36,7 +36,7 @@ tr.comment, tr.datafilter-header {
 	background-color: #e0e0e0;
 }
 table.serverinfo input[type="text"], table.serverinfo input:not([type]) {
-	width: 99%;
+	width: 80ex;
 }
 table.serverinfo td:first-child {
 	width: 200px;
@@ -48,24 +48,28 @@ table.serverinfo td.description {
 table.serverinfo input[type="checkbox"] {
 	margin-right: 8px;
 }
-div#topmenu, div.buttons {
+table.serverinfo input.discovered {
+	background-color: lightgoldenrodyellow;
+}
+div.topmenu {
 	border: 1px solid black;
 	display: inline-block;
 	z-index: 100;
 	position: fixed;
 	left: 50%;
-	top: -30px;
+	top: -35px;
 	transform: translate(-50%, 0);
 	border-radius: 5px;
 	padding: 8px;
 	background-color: white;
 	box-shadow: 3px 3px 10px 0px;
 	font-size: 90%;
+    white-space: nowrap;
 }
-div#topmenu:hover, div.buttons {
+div.topmenu:hover, div#serverinfomenu, div#discovermenu {
 	top: -4px;
 }
-input#serverinfo, div.buttons input {
+div.topmenu input {
 	font-size: 120%;
 }
 td {

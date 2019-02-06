@@ -182,6 +182,7 @@ function display_serverinfo()
 {
 	global $caldavtester_dir,$serverinfo;
 	static $name2input_attrs = [
+		'host' => 'title="you can NOT use localhost, use eg. \'docker.for.mac.localhost\' on a Mac"',
 		'nonsslport' => 'type="number" min="1" step="1"',
 		'sslport'    => 'type="number" min="1" step="1"',
 		'waitcount'  => 'type="number" min="0" step="1"',
@@ -202,6 +203,12 @@ function display_serverinfo()
 		$own_info = parse_serverinfo($serverinfo);
 	}
 
+	// integrate discovered values into $own_values
+	if (isset($_POST['discovered']))
+	{
+		$discovered = json_decode($_POST['discovered'], true);
+	}
+
 	foreach($info as $name => $data)
 	{
 		if (!empty($data['comment']))
@@ -211,11 +218,11 @@ function display_serverinfo()
 		switch($name)
 		{
 			case 'features':
-				display_features($data, $own_info[$name]);
+				display_features($data, $own_info[$name], $discovered[$name]);
 				break;
 
 			case 'substitutions':
-				display_substitutions($data, $own_info[$name]);
+				display_substitutions($data, $own_info[$name], $discovered[$name]);
 				break;
 
 			case 'calendardatafilter':
@@ -241,16 +248,25 @@ function display_serverinfo()
 				break;
 
 			default:
-				$value = isset($own_info[$name]) ? $own_info[$name]['value'] : $data['value'];
+				$value = isset($discovered[$name]) ? $discovered[$name] :
+					(isset($own_info[$name]) ? $own_info[$name]['value'] : $data['value']);
 				echo "<tr><td>".htmlspecialchars($data['name'])."</td>\n";
-				echo "\t<td><input name='".htmlspecialchars($data['name']).
-					"' ".(isset($name2input_attrs[$name]) ? $name2input_attrs[$name] : '').
-					"' value='".htmlspecialchars($value)."'/></td></tr>\n";
+				echo "\t<td><input id='".htmlspecialchars($name)."' name='".htmlspecialchars($name)."' ".
+					(isset($name2input_attrs[$name]) ? $name2input_attrs[$name] : '').
+					(isset($discovered[$name]) ? " class='discovered'" : '').
+					" value='".htmlspecialchars($value)."'/></td></tr>\n";
+				if ($name === 'host')
+				{
+					echo "<tr><td></td>\n";
+					echo "\t<td><input type='button' value='Discover settings from above host' onclick='".
+						'location.href="/discover.php?host="+encodeURIComponent(getElementById("host").value);'.
+						"'/></td></tr>\n";
+				}
 				break;
 		}
 	}
 	echo "</table>\n";
-	echo "<div class='buttons'>\n";
+	echo "<div class='topmenu' id='serverinfomenu'>\n";
 	foreach(['save' => 'Save', 'apply' => 'Apply', 'download' => 'Download', 'cancel' => 'Cancel'] as $name => $label)
 	{
 		echo "<input type='submit' name='button[$name]' value='$label'/>\n";
@@ -259,7 +275,7 @@ function display_serverinfo()
 	echo "</body>\n</html>\n";
 }
 
-function display_features(array $features, array $own_features=null)
+function display_features(array $features, array $own_features=null, array $discovered=null)
 {
 	foreach($own_features ? $own_features : $features as $name => $data)
 	{
@@ -268,10 +284,12 @@ function display_features(array $features, array $own_features=null)
 			echo "<tr class='comment'><td colspan='2'>".htmlspecialchars($data['comment'])."</td></tr>\n";
 		}
 		// if we have own features, not existing features are considered disabled (commented out!)
-		$value = !isset($own_features) ? $data['enabled'] :
-			(isset($own_features[$name]) ? $own_features[$name]['enabled'] : false);
+		$value = isset($discovered[$name]) ? $discovered[$name] :
+			(!isset($own_features) ? $data['enabled'] :
+			(isset($own_features[$name]) ? $own_features[$name]['enabled'] : false));
 
 		echo "<tr class='feature'><td><label><input name='features[".htmlspecialchars($name)."]' type='checkbox' ".
+			(isset($discovered[$name]) ? " class='discovered' " : '').
 			($value ? 'checked' : '')."/>".
 			htmlspecialchars($name)."</label></td>\n";
 
@@ -280,7 +298,7 @@ function display_features(array $features, array $own_features=null)
 	}
 }
 
-function display_substitutions(array $substitutions, array $own_substitutions=null)
+function display_substitutions(array $substitutions, array $own_substitutions=null, array $discovered=null)
 {
 	foreach($substitutions as $name => $data)
 	{
@@ -292,20 +310,23 @@ function display_substitutions(array $substitutions, array $own_substitutions=nu
 		{
 			$count = isset($own_substitutions[$name]['count']) ?
 				$own_substitutions[$name]['count'] : $data['count'];
-			echo "<tr class='repeats'><td>Number:</td><td><input name='substitutions[repeats][$name]".
-				"' type='number' min='2' max='100'".
+			echo "<tr class='repeats'><td>Number:</td><td><input name='substitutions[repeats][$name]'".
+				" type='number' min='2' max='100'".
 				" value='".htmlspecialchars($count)."'/></td></tr>\n";
 
 			display_substitutions($data['repeats'],
-				isset($own_substitutions[$name]['repeats']) ? $own_substitutions[$name]['repeats'] : null);
+				isset($own_substitutions[$name]['repeats']) ? $own_substitutions[$name]['repeats'] : null,
+				$discovered);
 		}
 		else
 		{
-			$value = isset($own_substitutions[$name]) ?
-				$own_substitutions[$name]['value'] : $data['value'];
+			$value = isset($discovered[$name]) ? $discovered[$name] :
+				(isset($own_substitutions[$name]) ? $own_substitutions[$name]['value'] : $data['value']);
 			echo "<tr class='substitution'><td>".htmlspecialchars($name)."</td>\n";
 			echo "\t<td><input name='substitutions[".htmlspecialchars($name).
-				"]' value='".htmlspecialchars($value)."'/></td></tr>\n";
+				"]' value='".htmlspecialchars($value)."'".
+				(isset($discovered[$name]) ? " class='discovered'" : '').
+				"/></td></tr>\n";
 		}
 	}
 }

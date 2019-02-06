@@ -330,7 +330,7 @@ function display_results($branch, $html=false)
 	{
 		$etag = check_send_etag($branch);
 		html_header();
-		echo "<div id='topmenu'>".
+		echo "<div class='topmenu'>".
 			"<input type='button' id='serverinfo' value='Edit serverinfo' onclick='location.href=\"/serverinfo.php\";'/>\n".
 			"Revision: <input id='revision' size='10' placeholder='".htmlspecialchars($revision)."' title='Set revision, if it can not be determined from git'/></div>\n";
 		echo "<table class='results' data-commit-url='".htmlspecialchars($commit_url)."' data-etag='".htmlspecialchars($etag)."'>\n";
