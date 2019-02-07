@@ -40,7 +40,7 @@ if (!file_exists($caldavtester_dir) || !file_exists($caldavtester_dir.'/testcald
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST')
 {
-	if (isset($_FILES['upload']))
+	if (isset($_FILES['upload']) && !empty($_FILES['upload']['tmp_name']))
 	{
 		if (!move_uploaded_file($_FILES['upload']['tmp_name'], $serverinfo))
 		{
