@@ -5,7 +5,7 @@
  * @author Ralf Becker <rb@egroupware.org>
  * @license http://opensource.org/licenses/Apache-2.0 Apache License, Version 2.0
  *
- * @link https://www.calendarserver.org/CalDAVTester.html
+ * @link https://github.com/CalConnect/caldavtester
  * @link https://github.com/CalConnect/caldavtester-tools
  */
 
@@ -40,7 +40,17 @@ if (!file_exists($caldavtester_dir) || !file_exists($caldavtester_dir.'/testcald
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST')
 {
-	process_serverinfo();
+	if (isset($_FILES['upload']))
+	{
+		if (!move_uploaded_file($_FILES['upload']['tmp_name'], $serverinfo))
+		{
+			echo "<p class='message'>Error uploading serverinfo.xml file!</p>\n";
+		}
+	}
+	else
+	{
+		process_serverinfo();
+	}
 }
 display_serverinfo();
 
@@ -191,7 +201,11 @@ function display_serverinfo()
 	];
 
 	html_header();
-	echo "<form method='POST'>\n<table class='serverinfo'>\n";
+	if (!file_exists($serverinfo))
+	{
+		echo "<p class='message'>You need to create or upload a serverinfo.xml document to use CalDAV-Tester.</p>\n";
+	}
+	echo "<form method='POST' enctype='multipart/form-data'>\n<table class='serverinfo'>\n";
 
 	// read serverinfo template from CalDAVTester sources
 	$template = $caldavtester_dir.'/scripts/server/serverinfo.xml';
@@ -271,10 +285,12 @@ function display_serverinfo()
 	}
 	echo "</table>\n";
 	echo "<div class='topmenu' id='serverinfomenu'>\n";
-	foreach(['save' => 'Save', 'apply' => 'Apply', 'download' => 'Download', 'cancel' => 'Cancel'] as $name => $label)
+	foreach(['save' => 'Save', 'apply' => 'Apply', 'cancel' => 'Cancel', 'download' => 'Download'] as $name => $label)
 	{
 		echo "<input type='submit' name='button[$name]' value='$label'/>\n";
 	}
+	echo "<input type='button' value='Upload' onclick='jQuery(\"input[name=upload]\").click();' title='Upload your serverinfo.xml'/>\n";
+	echo "<input type='file' name='upload' onchange='this.form.submit();' accept='.xml,application/xml' style='display:none'/>\n";
 	echo "</div></form>\n";
 	echo "</body>\n</html>\n";
 }

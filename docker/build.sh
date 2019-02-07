@@ -33,7 +33,10 @@ docker build -t $REPO/$IMAGE:latest . && {
 	docker run -d -p8081:80 \
 		--add-host boulder.egroupware.org:192.168.0.101 \
 		-v caldavtester-data:/data \
-		-v /opt/local/apache2/htdocs/egroupware:/sources \
+		-v /Volumes/htdocs/egroupware:/sources \
+		-v /Users/ralf/CalDAVTester/src:/caldavtester/src \
+		-v /Users/ralf/CalDAVTester/scripts:/caldavtester/scripts \
+		-v /Users/ralf/CalDAVTester/caldavtester-tools:/caldavtester/caldavtester-tools \
 		--name caldavtester quay.io/egroupware/caldavtester
 	docker logs -f caldavtester
 }

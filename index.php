@@ -1,6 +1,12 @@
 <?php
 /**
  * Index for docker container
+ *
+ * @author Ralf Becker <rb@egroupware.org>
+ * @license http://opensource.org/licenses/Apache-2.0 Apache License, Version 2.0
+ *
+ * @link https://github.com/CalConnect/caldavtester
+ * @link https://github.com/CalConnect/caldavtester-tools
  */
 
 if (php_sapi_name() == 'cli')
@@ -22,14 +28,6 @@ else
 	die("Config-file $config_file NOT found!\n");
 }
 
-if (isset($_FILES['serverinfo']))
-{
-	if (!move_uploaded_file($_FILES['serverinfo']['tmp_name'], $serverinfo))
-	{
-		echo "<p>Error uploading serverinfo.xml file!</p>\n";
-	}
-}
-
 // if we have a serverinfo.xml, redirect to caldavtests.php
 if (file_exists($serverinfo))
 {
@@ -42,9 +40,9 @@ if (file_exists($serverinfo))
 		die("Sqlite database file $db_path can NOT be written!");
 	}
 	header('Location: /caldavtests.php');
-	exit;
 }
-
-die("<pre><b>No serverinfo.xml found!</b>\n\nYou need to supply it as volume under /data:\n\ndocker run -p8080:80 -v &lt;/dir/of/serverinfo.xml>:/data quay.io/egroupware/caldavtester\n\n".
-	"Or <a href='/serverinfo.php'>create one with our wizzard</a> ".
-	"<form method='POST' enctype='multipart/form-data' style='display: inline-block'>or upload it now <input type='file' name='serverinfo' onchange='this.form.submit();'/></form>");
+// if not, redirect to serverinfo.php to create or upload one
+else
+{
+	header('Location: /serverinfo.php');
+}

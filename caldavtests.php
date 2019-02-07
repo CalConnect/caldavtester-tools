@@ -1,11 +1,11 @@
 <?php
 /**
- * Analyse and display logs of CalDAVTester
+ * GUI for CalDAVTester
  *
  * @author Ralf Becker <rb@egroupware.org>
  * @license http://opensource.org/licenses/Apache-2.0 Apache License, Version 2.0
  *
- * @link https://www.calendarserver.org/CalDAVTester.html
+ * @link https://github.com/CalConnect/caldavtester
  * @link https://github.com/CalConnect/caldavtester-tools
  */
 
